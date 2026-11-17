@@ -1,5 +1,7 @@
 """Exercise the real SEC import service against disposable PostgreSQL."""
 import asyncio
+import hashlib
+import json
 from uuid import uuid4
 
 import pytest
@@ -18,12 +20,12 @@ class FixtureSECClient:
     async def company_facts(self, cik: str):
         payload = {"facts": {"us-gaap": {"RevenueFromContractWithCustomerExcludingAssessedTax": {
             "units": {"USD": [
-                {"val": 100, "start": "2024-01-01", "end": "2024-12-31", "filed": "2025-02-01", "fy": 2024, "fp": "FY", "form": "10-K", "accn": "0000000001-25-000001"},
-                {"val": 110, "start": "2024-01-01", "end": "2024-12-31", "filed": "2025-03-01", "fy": 2024, "fp": "FY", "form": "10-K/A", "accn": "0000000001-25-000002"},
+                {"val": 100, "start": "2024-01-01", "end": "2024-12-31", "filed": "2025-02-01", "fy": 2024, "fp": "FY", "form": "10-K", "accn": f"{cik}-25-000001"},
+                {"val": 110, "start": "2024-01-01", "end": "2024-12-31", "filed": "2025-03-01", "fy": 2024, "fp": "FY", "form": "10-K/A", "accn": f"{cik}-25-000002"},
             ]}
         }}}}
-        raw = '{"fixture":"sec-import"}'
-        return payload, raw, "b" * 64
+        raw = json.dumps({"fixture": "sec-import", "cik": cik}, sort_keys=True)
+        return payload, raw, hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
 @pytest.mark.asyncio
@@ -31,6 +33,7 @@ async def test_real_import_twice_is_idempotent_and_preserves_restatement() -> No
     engine = create_async_engine(DATABASE_URL)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     company_id = uuid4()
+    cik = str(uuid4().int % 10000000000).zfill(10)
     try:
         async with engine.begin() as connection:
             await connection.execute(text(
@@ -39,7 +42,7 @@ async def test_real_import_twice_is_idempotent_and_preserves_restatement() -> No
             ), {"id": company_id})
         service = SECCompanyFactsImportService(FixtureSECClient())
         async with factory() as session:
-            first = await service.import_company(session, company_id=company_id, cik="1")
+            first = await service.import_company(session, company_id=company_id, cik=cik)
             second = await service.import_company(session, company_id=company_id, cik="1")
             assert first["imported_facts"] == 2
             assert second["imported_facts"] == 0
@@ -56,15 +59,9 @@ async def test_real_import_twice_is_idempotent_and_preserves_restatement() -> No
                 "SELECT accession_number FROM financial_facts WHERE company_id = :id"
             ), {"id": company_id}))
         assert (raw_count, fact_count, normalized_count, lineage_count) == (1, 2, 2, 2)
-        assert accessions == {"0000000001-25-000001", "0000000001-25-000002"}
+        assert accessions == {f"{cik}-25-000001", f"{cik}-25-000002"}
     finally:
-        async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM financial_fact_lineage WHERE normalized_fact_id IN (SELECT id FROM normalized_financial_facts WHERE company_id = :id)"), {"id": company_id})
-            await connection.execute(text("DELETE FROM normalized_financial_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM financial_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM sec_raw_company_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM sec_provider_cache WHERE cache_key = 'companyfacts:0000000001'"))
-            await connection.execute(text("DELETE FROM companies WHERE id = :id"), {"id": company_id})
+        # Immutable SEC facts and lineage are append-only; CI uses a disposable DB.
         await engine.dispose()
 
 
@@ -97,11 +94,5 @@ async def test_concurrent_same_payload_imports_are_database_idempotent() -> None
             ), {"id": company_id})
         assert (fact_count, raw_count) == (2, 1)
     finally:
-        async with engine.begin() as connection:
-            await connection.execute(text("DELETE FROM financial_fact_lineage WHERE normalized_fact_id IN (SELECT id FROM normalized_financial_facts WHERE company_id = :id)"), {"id": company_id})
-            await connection.execute(text("DELETE FROM normalized_financial_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM financial_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM sec_raw_company_facts WHERE company_id = :id"), {"id": company_id})
-            await connection.execute(text("DELETE FROM sec_provider_cache WHERE cache_key = 'companyfacts:0000000001'"))
-            await connection.execute(text("DELETE FROM companies WHERE id = :id"), {"id": company_id})
+        # Immutable SEC facts and lineage are append-only; CI uses a disposable DB.
         await engine.dispose()
