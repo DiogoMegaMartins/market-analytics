@@ -17,7 +17,6 @@ from app.api.v1.endpoints.valuation import (
     create_company_dcf_valuation,
     get_company_valuation_history,
     get_company_valuation_run,
-    get_company_valuation_run,
 )
 from app.api.v1.endpoints.valuation import (
     router as valuation_router,
