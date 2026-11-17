@@ -64,7 +64,7 @@ jobs:
         run: python -m pip install -e ".[dev]"
       - name: Verify database drivers
         working-directory: backend
-        run: python -c "import asyncpg, sqlalchemy; print(f'asyncpg={asyncpg.__version__} sqlalchemy={sqlalchemy.__version__}')"
+        run: python -c "import asyncpg, psycopg, sqlalchemy; print(f'asyncpg={asyncpg.__version__} psycopg={psycopg.__version__} sqlalchemy={sqlalchemy.__version__}')"
       - name: Apply PostgreSQL migrations
         working-directory: backend
         run: alembic upgrade head
@@ -144,9 +144,9 @@ jobs:
       - name: Install backend development dependencies
         working-directory: backend
         run: python -m pip install -e ".[dev]"
-      - name: Verify PostgreSQL driver
+      - name: Verify PostgreSQL drivers
         working-directory: backend
-        run: python -c "import asyncpg; print(f'asyncpg={asyncpg.__version__}')"
+        run: python -c "import asyncpg, psycopg; print(f'asyncpg={asyncpg.__version__} psycopg={psycopg.__version__}')"
       - name: Apply Alembic migrations to integration branch only
         working-directory: backend
         run: alembic upgrade head
