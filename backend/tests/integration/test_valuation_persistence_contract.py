@@ -76,7 +76,6 @@ def _payload() -> DCFValuationInput:
 async def test_company_dcf_creation_persists_immutable_run_and_returns_history() -> None:
     engine = create_async_engine(DATABASE_URL, pool_pre_ping=True)
     factory = async_sessionmaker(engine, expire_on_commit=False)
-    company_id = None
     try:
         async with factory() as session:
             company = Company(legal_name=f"Valuation integration {uuid4()}")
@@ -88,7 +87,6 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
             )
             session.add_all([company, user])
             await session.flush()
-            company_id = company.id
             session.add(CompanyMembership(
                 user_id=user.id,
                 company_id=company.id,
