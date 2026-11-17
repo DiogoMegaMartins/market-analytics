@@ -6,6 +6,7 @@ from app.api.v1.endpoints.financial_data import router as financial_data_router
 from app.api.v1.endpoints.identity import router as identity_router
 from app.api.v1.endpoints.metrics import router as metrics_router
 from app.api.v1.endpoints.thesis import router as thesis_router
+from app.api.v1.endpoints.valuation import router as valuation_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
@@ -14,3 +15,4 @@ api_router.include_router(financial_data_router)
 api_router.include_router(metrics_router)
 api_router.include_router(business_quality_router)
 api_router.include_router(thesis_router)
+api_router.include_router(valuation_router)
