@@ -13,7 +13,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
@@ -26,7 +26,7 @@ class SECRawCompanyFacts(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_sec_raw_company_facts_cik_retrieved", "cik", "retrieved_at"),
     )
 
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
     cik: Mapped[str] = mapped_column(String(10), nullable=False)
     provider: Mapped[str] = mapped_column(String(30), nullable=False, default="SEC", server_default="SEC")
     source_url: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -44,8 +44,8 @@ class FinancialFact(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_financial_facts_cik_filed", "cik", "filed_at"),
     )
 
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
-    raw_record_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("sec_raw_company_facts.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    raw_record_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("sec_raw_company_facts.id", ondelete="RESTRICT"), nullable=False)
     cik: Mapped[str] = mapped_column(String(10), nullable=False)
     external_fact_key: Mapped[str] = mapped_column(String(64), nullable=False)
     metric_id: Mapped[str] = mapped_column(String(80), nullable=False)
@@ -74,8 +74,8 @@ class NormalizedFinancialFact(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         Index("ix_normalized_facts_company_metric_year", "company_id", "metric_id", "fiscal_year"),
     )
 
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
-    source_fact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("financial_facts.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    source_fact_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("financial_facts.id", ondelete="RESTRICT"), nullable=False)
     metric_id: Mapped[str] = mapped_column(String(80), nullable=False)
     value: Mapped[Decimal] = mapped_column(Numeric(38, 10), nullable=False)
     unit: Mapped[str] = mapped_column(String(40), nullable=False)
@@ -98,8 +98,8 @@ class FinancialFactLineage(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "financial_fact_lineage"
     __table_args__ = (UniqueConstraint("normalized_fact_id", "source_fact_id", "role", name="uq_financial_fact_lineage_edge"),)
 
-    normalized_fact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("normalized_financial_facts.id", ondelete="RESTRICT"), nullable=False)
-    source_fact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("financial_facts.id", ondelete="RESTRICT"), nullable=False)
+    normalized_fact_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("normalized_financial_facts.id", ondelete="RESTRICT"), nullable=False)
+    source_fact_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("financial_facts.id", ondelete="RESTRICT"), nullable=False)
     role: Mapped[str] = mapped_column(String(30), nullable=False, default="DIRECT_SOURCE", server_default="DIRECT_SOURCE")
     normalized_fact: Mapped[NormalizedFinancialFact] = relationship(back_populates="lineage")
 
@@ -108,7 +108,7 @@ class FinancialMetricRun(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "financial_metric_runs"
     __table_args__ = (Index("ix_metric_runs_company_created", "company_id", "created_at"),)
 
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
     fiscal_year: Mapped[int] = mapped_column(Integer, nullable=False)
     resolution_policy: Mapped[str] = mapped_column(String(30), nullable=False)
     as_known_at: Mapped[date | None] = mapped_column(Date)
@@ -124,8 +124,8 @@ class FinancialMetricResult(UUIDPrimaryKeyMixin, Base):
         Index("ix_metric_results_company_year", "company_id", "fiscal_year"),
     )
 
-    run_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("financial_metric_runs.id", ondelete="RESTRICT"), nullable=False)
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    run_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("financial_metric_runs.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
     fiscal_year: Mapped[int] = mapped_column(Integer, nullable=False)
     metric_id: Mapped[str] = mapped_column(String(80), nullable=False)
     value: Mapped[Decimal | None] = mapped_column(Numeric(38, 16))
@@ -138,17 +138,17 @@ class FinancialMetricLineage(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "financial_metric_lineage"
     __table_args__ = (UniqueConstraint("result_id", "normalized_fact_id", name="uq_metric_lineage_result_fact"),)
 
-    result_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("financial_metric_results.id", ondelete="RESTRICT"), nullable=False)
-    normalized_fact_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("normalized_financial_facts.id", ondelete="RESTRICT"), nullable=False)
+    result_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("financial_metric_results.id", ondelete="RESTRICT"), nullable=False)
+    normalized_fact_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("normalized_financial_facts.id", ondelete="RESTRICT"), nullable=False)
 
 
 class FinancialQualityFinding(UUIDPrimaryKeyMixin, Base):
     __tablename__ = "financial_quality_findings"
     __table_args__ = (Index("ix_fin_quality_company_year", "company_id", "fiscal_year"),)
 
-    company_id: Mapped[UUID] = mapped_column(PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
+    company_id: Mapped[UUID] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False)
     fiscal_year: Mapped[int] = mapped_column(Integer, nullable=False)
-    run_id: Mapped[UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("financial_metric_runs.id", ondelete="RESTRICT"))
+    run_id: Mapped[UUID | None] = mapped_column(postgresql.UUID(as_uuid=True), ForeignKey("financial_metric_runs.id", ondelete="RESTRICT"))
     rule_id: Mapped[str] = mapped_column(String(80), nullable=False)
     severity: Mapped[str] = mapped_column(String(20), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
@@ -180,15 +180,15 @@ class ValuationRun(UUIDPrimaryKeyMixin, Base):
     )
 
     company_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False
+        postgresql.UUID(as_uuid=True), ForeignKey("companies.id", ondelete="RESTRICT"), nullable=False
     )
     created_by_user_id: Mapped[UUID] = mapped_column(
-        PGUUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
+        postgresql.UUID(as_uuid=True), ForeignKey("users.id", ondelete="RESTRICT"), nullable=False
     )
     valuation_version: Mapped[str] = mapped_column(String(40), nullable=False)
     method: Mapped[str] = mapped_column(String(30), nullable=False)
     base_year: Mapped[int] = mapped_column(Integer, nullable=False)
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
-    assumptions: Mapped[dict] = mapped_column(JSONB, nullable=False)
-    result: Mapped[dict] = mapped_column(JSONB, nullable=False)
+    assumptions: Mapped[dict] = mapped_column(postgresql.JSONB, nullable=False)
+    result: Mapped[dict] = mapped_column(postgresql.JSONB, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
