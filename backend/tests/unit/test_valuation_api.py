@@ -2,7 +2,9 @@ import pytest
 from pydantic import ValidationError
 
 from app.api.v1.dependencies import require_company_access
-from app.api.v1.endpoints.valuation import DCFValuationInput, ForecastPeriodInput, router
+from decimal import Decimal
+
+from app.api.v1.endpoints.valuation import DCFValuationInput, router
 from app.models import Base
 
 
@@ -41,7 +43,7 @@ def test_valuation_input_rejects_unknown_fields():
 def test_valuation_input_preserves_explicit_scenario_assumptions():
     payload = DCFValuationInput.model_validate(_payload())
     assert payload.scenarios["BASE"][0].revenue == 1000
-    assert payload.wacc == "0.09"
+    assert payload.wacc == Decimal("0.09")
 
 
 def test_valuation_run_table_is_registered_for_migrations():
