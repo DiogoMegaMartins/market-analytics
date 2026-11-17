@@ -29,6 +29,7 @@ from app.models.financial_data import (
     NormalizedFinancialFact,
     SECProviderCache,
     SECRawCompanyFacts,
+    ValuationRun,
 )
 from app.models.identity import Asset, AssetIdentifier, Company
 from app.models.thesis import InvestmentThesis, InvestmentThesisEvent, InvestmentThesisVersion
@@ -69,4 +70,5 @@ __all__ = [
     "SECProviderCache",
     "SECRawCompanyFacts",
     "User",
+    "ValuationRun",
 ]

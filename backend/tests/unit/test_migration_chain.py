@@ -31,14 +31,14 @@ def _migration_metadata() -> dict[str, str | None]:
 
 def test_alembic_has_single_increment_4_1_head() -> None:
     metadata = _migration_metadata()
-    assert "0019_neon_operational_indexes" in metadata
-    assert metadata["0019_neon_operational_indexes"] == "0018_point_in_time_contract"
+    assert "0020_valuation_runs" in metadata
+    assert metadata["0020_valuation_runs"] == "0019_neon_operational_indexes"
     assert len(metadata) == len(set(metadata))
     assert all(len(revision) <= 32 for revision in metadata)
     assert all(parent is None or parent in metadata for parent in metadata.values())
     parents = {parent for parent in metadata.values() if parent is not None}
     heads = set(metadata) - parents
-    assert heads == {"0019_neon_operational_indexes"}
+    assert heads == {"0020_valuation_runs"}
 
 
 def test_thesis_history_triggers_follow_table_creation() -> None:

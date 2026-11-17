@@ -72,14 +72,14 @@ jobs:
         working-directory: backend
         run: |
           alembic current
-          test "$(alembic current | grep -o '0019_neon_operational_indexes')" = "0019_neon_operational_indexes"
+          test "$(alembic current | grep -o '0020_valuation_runs')" = "0020_valuation_runs"
       - name: Verify migration downgrade and upgrade
         working-directory: backend
         run: |
           alembic downgrade 0018_point_in_time_contract
           test "$(alembic current | grep -o '0018_point_in_time_contract')" = "0018_point_in_time_contract"
           alembic upgrade head
-          test "$(alembic current | grep -o '0019_neon_operational_indexes')" = "0019_neon_operational_indexes"
+          test "$(alembic current | grep -o '0020_valuation_runs')" = "0020_valuation_runs"
       - name: Run backend and PostgreSQL tests
         working-directory: backend
         run: pytest -q --junitxml=pytest-junit.xml
@@ -155,7 +155,7 @@ jobs:
         shell: bash
         run: |
           alembic current
-          alembic current | grep -q "0019_neon_operational_indexes"
+          alembic current | grep -q "0020_valuation_runs"
       - name: Run PostgreSQL integration suite
         working-directory: backend
         run: pytest -q --junitxml=pytest-neon-integration.xml
