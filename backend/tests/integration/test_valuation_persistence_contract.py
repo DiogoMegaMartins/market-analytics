@@ -17,6 +17,7 @@ from app.api.v1.endpoints.valuation import (
     create_company_dcf_valuation,
     get_company_valuation_history,
     get_company_valuation_run,
+    get_company_valuation_run,
 )
 from app.api.v1.endpoints.valuation import (
     router as valuation_router,
@@ -181,6 +182,25 @@ async def test_company_dcf_access_is_tenant_scoped() -> None:
                 created_at=datetime.now(UTC),
             ))
             await session.flush()
+            foreign_run = ValuationRun(
+                company_id=other_company.id,
+                created_by_user_id=user.id,
+                valuation_version="fcff-dcf-v1",
+                method="FCFF_DCF",
+                base_year=2024,
+                currency="USD",
+                assumptions={"scenarios": {"BASE": []}},
+                result={"method": "FCFF_DCF"},
+                created_at=datetime.now(UTC),
+            )
+            session.add(foreign_run)
+            await session.flush()
+
+            with pytest.raises(HTTPException) as run_error:
+                await get_company_valuation_run(
+                    own_company.id, foreign_run.id, session
+                )
+            assert run_error.value.status_code == 404
 
             allowed = _request(own_company.id)
             await require_company_access(allowed, current_user=user, session=session)
