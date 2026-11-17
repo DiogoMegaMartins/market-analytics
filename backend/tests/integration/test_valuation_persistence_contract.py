@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import os
-from datetime import UTC, datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 
 import pytest
