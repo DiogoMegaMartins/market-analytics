@@ -1,0 +1,21 @@
+flowchart TB
+  U[Utilizador] --> FE[Next.js Frontend]
+  FE --> API[FastAPI API]
+  API --> AUTH[Identity & Authorization]
+  API --> DOM[Domain Services]
+  DOM --> FIN[Financial Data & Metrics]
+  DOM --> VAL[Valuation & Decision]
+  DOM --> RES[Research & Thesis]
+  DOM --> PORT[Portfolio & Backtesting]
+  DOM --> MAC[Macro & Market Data]
+  DOM --> AI[AI Research Orchestration]
+  FIN --> DB[(PostgreSQL)]
+  VAL --> DB
+  RES --> DB
+  PORT --> DB
+  MAC --> DB
+  AI --> DOC[(Document/Object Storage)]
+  DOM --> PROV[Provider Adapters]
+  PROV --> SEC[SEC / Regulators]
+  PROV --> MKT[Market Data Providers]
+  PROV --> ECO[Macro Data Providers]

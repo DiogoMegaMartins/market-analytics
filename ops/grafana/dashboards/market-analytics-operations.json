@@ -1,0 +1,19 @@
+{
+  "uid": "market-analytics-ops",
+  "title": "Market Analytics — Operations",
+  "tags": ["market-analytics", "operations"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {"id": 1, "type": "stat", "title": "Requests / sec", "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0}, "targets": [{"expr": "sum(rate(market_analytics_http_requests_total[5m]))", "refId": "A"}]},
+    {"id": 2, "type": "stat", "title": "5xx rate", "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0}, "targets": [{"expr": "sum(rate(market_analytics_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(market_analytics_http_requests_total[5m])), 0.001)", "refId": "A"}]},
+    {"id": 3, "type": "stat", "title": "p95 latency (s)", "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0}, "targets": [{"expr": "histogram_quantile(0.95, sum by (le) (rate(market_analytics_http_request_duration_seconds_bucket[5m])))", "refId": "A"}]},
+    {"id": 4, "type": "stat", "title": "DB connections checked out", "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0}, "targets": [{"expr": "market_analytics_db_pool_checked_out", "refId": "A"}]},
+    {"id": 5, "type": "timeseries", "title": "HTTP requests by status", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 5}, "targets": [{"expr": "sum by (status) (rate(market_analytics_http_requests_total[5m]))", "legendFormat": "{{status}}", "refId": "A"}]},
+    {"id": 6, "type": "timeseries", "title": "SEC retries", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 5}, "targets": [{"expr": "increase(market_analytics_provider_retries_total{provider=\"sec\"}[5m])", "legendFormat": "SEC", "refId": "A"}]},
+    {"id": 7, "type": "timeseries", "title": "Backup run status", "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13}, "targets": [{"expr": "market_analytics_backup_last_run_success", "legendFormat": "latest run success", "refId": "A"}]},
+    {"id": 8, "type": "timeseries", "title": "Time since last successful backup (hours)", "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13}, "targets": [{"expr": "(time() - market_analytics_backup_last_success_unixtime) / 3600", "legendFormat": "hours", "refId": "A"}]}
+  ]
+}

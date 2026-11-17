@@ -1,0 +1,22 @@
+# Mapa de pastas
+
+- `frontend/app`: rotas e layouts Next.js.
+- `frontend/features`: funcionalidades agrupadas por domínio.
+- `frontend/components`: componentes reutilizáveis.
+- `backend/app/api`: routers e endpoints HTTP.
+- `backend/app/domain`: conceitos e regras puras do domínio.
+- `backend/app/models`: modelos ORM.
+- `backend/app/schemas`: contratos Pydantic.
+- `backend/app/repositories`: acesso a dados.
+- `backend/app/services`: orquestração de casos de uso.
+- `backend/app/providers`: adaptadores externos.
+- `backend/app/platform`: infraestrutura transversal.
+- `backend/app/orchestration`: jobs e workflows.
+- `backend/tests`: testes unitários, integração e fixtures.
+- `docs/methodology`: fórmulas, regras e princípios.
+- `docs/architecture`: arquitectura e contratos.
+- `docs/decisions`: ADRs.
+- `docs/diagrams`: diagramas Mermaid.
+- `docs/security`: baseline de segurança.
+- `docs/testing`: estratégia de testes.
+- `docs/implementation`: roadmap, estado e auditoria.
