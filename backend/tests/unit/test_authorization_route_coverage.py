@@ -22,7 +22,7 @@ def _has_bearer_security(operation: dict) -> bool:
 
 def test_company_scoped_api_routers_require_company_access():
     # Authorization is deliberately applied at router level to every operation.
-    for router in (business_quality_router, financial_data_router, metrics_router):
+    for router in (business_quality_router, financial_data_router, metrics_router, valuation_router):
         assert require_company_access in _router_dependency_calls(router)
 
 
