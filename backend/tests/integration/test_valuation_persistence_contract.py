@@ -16,6 +16,7 @@ from app.api.v1.endpoints.valuation import (
     DCFValuationInput,
     create_company_dcf_valuation,
     get_company_valuation_history,
+    get_company_valuation_run,
 )
 from app.api.v1.endpoints.valuation import (
     router as valuation_router,
@@ -126,6 +127,13 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
             assert len(history["valuations"]) == 1
             assert history["valuations"][0]["id"] == response["id"]
             assert history["valuations"][0]["method"] == "FCFF_DCF"
+
+            detail = await get_company_valuation_run(
+                company.id, UUID(response["id"]), session
+            )
+            assert detail["assumptions"] == persisted.assumptions
+            assert detail["result"] == persisted.result
+            assert detail["created_by_user_id"] == str(user.id)
 
             # PostgreSQL must reject both mutation paths, without poisoning the
             # surrounding session transaction (each expected failure is isolated).
