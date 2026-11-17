@@ -37,7 +37,7 @@ async def test_company_membership_allows_own_tenant_and_hides_other_tenant() -> 
         async with factory() as session:
             own_company = Company(legal_name=f"Own tenant {uuid4()}")
             other_company = Company(legal_name=f"Other tenant {uuid4()}")
-            user = User(email=f"tenant-{uuid4()}@example.test", password_hash="not-used", display_name="Tenant Analyst")
+            user = User(email=f"tenant-{uuid4()}@example.test", password_hash="not-used", display_name="Tenant Analyst", created_at=datetime.now(UTC))
             session.add_all([own_company, other_company, user])
             await session.flush()
             session.add(CompanyMembership(
@@ -98,7 +98,7 @@ async def test_reviewer_cannot_create_assessment_but_can_review_evidence() -> No
     try:
         async with factory() as session:
             company = Company(legal_name=f"Review tenant {uuid4()}")
-            user = User(email=f"reviewer-{uuid4()}@example.test", password_hash="not-used", display_name="Reviewer")
+            user = User(email=f"reviewer-{uuid4()}@example.test", password_hash="not-used", display_name="Reviewer", created_at=datetime.now(UTC))
             session.add_all([company, user])
             await session.flush()
             session.add(CompanyMembership(
