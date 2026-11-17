@@ -20,10 +20,10 @@ from app.api.v1.endpoints.valuation import (
     get_company_valuation_history,
     router as valuation_router,
 )
-from app.platform.database.session import get_db_session
 from app.models.auth import CompanyMembership, User
 from app.models.financial_data import ValuationRun
 from app.models.identity import Company
+from app.platform.database.session import get_db_session
 
 DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL is not configured")
