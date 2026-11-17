@@ -21,6 +21,9 @@ jobs:
       - name: Verify Ruff installation
         working-directory: backend
         run: python -m ruff --version
+      - name: Diagnose valuation test import ordering
+        working-directory: backend
+        run: python -m ruff check --select I --diff tests/integration/test_valuation_persistence_contract.py || true
       - name: Check lint and import ordering
         working-directory: backend
         run: python -m ruff check --output-format=github app tests
@@ -72,14 +75,14 @@ jobs:
         working-directory: backend
         run: |
           alembic current
-          test "$(alembic current | grep -o '0020_valuation_runs')" = "0020_valuation_runs"
+          test "$(alembic current | grep -o '0021_valuation_run_immutability')" = "0021_valuation_run_immutability"
       - name: Verify migration downgrade and upgrade
         working-directory: backend
         run: |
           alembic downgrade 0018_point_in_time_contract
           test "$(alembic current | grep -o '0018_point_in_time_contract')" = "0018_point_in_time_contract"
           alembic upgrade head
-          test "$(alembic current | grep -o '0020_valuation_runs')" = "0020_valuation_runs"
+          test "$(alembic current | grep -o '0021_valuation_run_immutability')" = "0021_valuation_run_immutability"
       - name: Run backend and PostgreSQL tests
         working-directory: backend
         run: pytest -q --junitxml=pytest-junit.xml
@@ -155,7 +158,7 @@ jobs:
         shell: bash
         run: |
           alembic current
-          alembic current | grep -q "0020_valuation_runs"
+          alembic current | grep -q "0021_valuation_run_immutability"
       - name: Run PostgreSQL integration suite
         working-directory: backend
         run: pytest -q --junitxml=pytest-neon-integration.xml
