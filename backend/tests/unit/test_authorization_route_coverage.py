@@ -7,6 +7,7 @@ from app.api.v1.endpoints.business_quality import router as business_quality_rou
 from app.api.v1.endpoints.financial_data import router as financial_data_router
 from app.api.v1.endpoints.identity import router as identity_router
 from app.api.v1.endpoints.metrics import router as metrics_router
+from app.api.v1.endpoints.valuation import router as valuation_router
 from app.main import app
 
 
