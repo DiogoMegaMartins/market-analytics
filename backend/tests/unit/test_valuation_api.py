@@ -28,6 +28,7 @@ def test_valuation_routes_are_company_scoped_and_registered():
     paths = {route.path for route in router.routes}
     assert "/valuation/companies/{company_id}/dcf" in paths
     assert "/valuation/companies/{company_id}/history" in paths
+    assert "/valuation/companies/{company_id}/runs/{run_id}" in paths
     assert any(getattr(dep.dependency, "__name__", "") == "require_company_access"
                for dep in router.dependencies)
 
