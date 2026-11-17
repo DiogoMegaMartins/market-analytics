@@ -72,3 +72,17 @@ textarea { width: 100%; min-width: 0; resize: vertical; border: 1px solid var(--
 .version-history { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
 .version-history h3 { font-size: 14px; margin: 0 0 8px; }
 @media (max-width: 700px) { .version-toolbar { align-items: stretch; }.version-diff .grid-two { grid-template-columns: 1fr; } }
+
+textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); padding: 12px; min-width: 0; resize: vertical; font: 12px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.valuation-json { margin-top: 16px; }
+.valuation-scenarios { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.valuation-scenario { display: grid; gap: 7px; border: 1px solid var(--line); border-radius: 10px; padding: 15px; min-width: 0; }
+.valuation-scenario strong { font-size: 23px; letter-spacing: -.03em; overflow-wrap: anywhere; }
+.valuation-scenario small, .valuation-scenario p { margin: 0; color: var(--muted); font-size: 12px; overflow-wrap: anywhere; }
+.valuation-warning { color: #806018 !important; }
+.valuation-subtitle { font-size: 14px; margin: 22px 0 10px; }
+.table-scroll { overflow-x: auto; }
+.valuation-table { border-collapse: collapse; width: 100%; font-size: 13px; }
+.valuation-table th, .valuation-table td { border: 1px solid var(--line); padding: 10px; text-align: right; white-space: nowrap; }
+.valuation-table th:first-child { text-align: left; }
+@media (max-width: 700px) { .valuation-scenarios { grid-template-columns: 1fr; } }
