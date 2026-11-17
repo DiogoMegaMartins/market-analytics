@@ -8,13 +8,12 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
-    JSONB,
     Numeric,
     String,
     Text,
     UniqueConstraint,
 )
-from sqlalchemy.dialects.postgresql import UUID as PGUUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.platform.database.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
