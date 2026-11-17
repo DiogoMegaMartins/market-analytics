@@ -16,7 +16,7 @@ depends_on = None
 def upgrade() -> None:
     op.create_table(
         "valuation_runs",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
+        sa.Column("id", postgresql.UUID(as_uuid=True), server_default=sa.text("gen_random_uuid()"), primary_key=True, nullable=False),
         sa.Column("company_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("created_by_user_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("valuation_version", sa.String(length=40), nullable=False),
