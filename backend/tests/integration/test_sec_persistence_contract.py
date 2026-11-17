@@ -30,6 +30,8 @@ async def test_sec_raw_normalized_lineage_restatement_idempotency_and_rollback()
     normalized_id = uuid4()
     cik = str(uuid4().int % 10000000000).zfill(10)
     fact_key = f"synthetic-fact-{uuid4()}"
+    # The integration database persists between workflow runs; keep every restatement key unique.
+    restated_fact_key = f"synthetic-fact-restated-{uuid4()}"
     normalized_key = f"synthetic-normalized-{uuid4()}"
     try:
         async with factory() as session, session.begin():
@@ -78,7 +80,7 @@ async def test_sec_raw_normalized_lineage_restatement_idempotency_and_rollback()
             # A different accession remains a distinct restatement observation.
             session.add(FinancialFact(
                 company_id=company_id, raw_record_id=raw_id, cik=cik,
-                external_fact_key="synthetic-fact-restated", metric_id="FIN.REVENUE",
+                external_fact_key=restated_fact_key, metric_id="FIN.REVENUE",
                 taxonomy="us-gaap", tag="Revenue", value=Decimal(110), unit="USD",
                 period_kind="ANNUAL", end_date=date(2024, 12, 31),
                 accession_number=f"{cik}-25-000002", filed_at=date(2025, 3, 1),
