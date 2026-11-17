@@ -142,7 +142,7 @@ def calculate_fcff_dcf(
         for adjusted_wacc in (discount_rate + step for step in wacc_steps):
             row = {"wacc": str(adjusted_wacc), "values_per_share": []}
             for adjusted_growth in (growth_rate + step for step in growth_steps):
-                if adjusted_wacc <= ZERO or adjusted_wacc >= ONE or adjusted_growth >= adjusted_wacc or adjusted_growth <= Decimal("-1"):
+                if adjusted_wacc <= ZERO or adjusted_wacc >= ONE or adjusted_growth >= adjusted_wacc or adjusted_growth <= Decimal(-1):
                     value = None
                 else:
                     case = _value_scenario(
