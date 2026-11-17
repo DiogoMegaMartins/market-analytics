@@ -1,8 +1,9 @@
+from decimal import Decimal
+
 import pytest
 from pydantic import ValidationError
 
 from app.api.v1.dependencies import require_company_access
-from decimal import Decimal
 
 from app.api.v1.endpoints.valuation import DCFValuationInput, router
 from app.models import Base
