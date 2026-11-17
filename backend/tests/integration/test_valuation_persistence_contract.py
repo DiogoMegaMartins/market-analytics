@@ -1,7 +1,7 @@
 """Real-PostgreSQL contract for the company-scoped FCFF DCF API and history."""
 import os
 from datetime import UTC, datetime
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from fastapi import FastAPI, HTTPException
@@ -16,6 +16,7 @@ from app.api.v1.endpoints.valuation import (
     DCFValuationInput,
     create_company_dcf_valuation,
     get_company_valuation_history,
+    get_company_valuation_run,
 )
 from app.api.v1.endpoints.valuation import (
     router as valuation_router,
@@ -127,6 +128,13 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
             assert history["valuations"][0]["id"] == response["id"]
             assert history["valuations"][0]["method"] == "FCFF_DCF"
 
+            detail = await get_company_valuation_run(
+                company.id, UUID(response["id"]), session
+            )
+            assert detail["assumptions"] == persisted.assumptions
+            assert detail["result"] == persisted.result
+            assert detail["created_by_user_id"] == str(user.id)
+
             # PostgreSQL must reject both mutation paths, without poisoning the
             # surrounding session transaction (each expected failure is isolated).
             with pytest.raises(DBAPIError):
@@ -173,6 +181,25 @@ async def test_company_dcf_access_is_tenant_scoped() -> None:
                 created_at=datetime.now(UTC),
             ))
             await session.flush()
+            foreign_run = ValuationRun(
+                company_id=other_company.id,
+                created_by_user_id=user.id,
+                valuation_version="fcff-dcf-v1",
+                method="FCFF_DCF",
+                base_year=2024,
+                currency="USD",
+                assumptions={"scenarios": {"BASE": []}},
+                result={"method": "FCFF_DCF"},
+                created_at=datetime.now(UTC),
+            )
+            session.add(foreign_run)
+            await session.flush()
+
+            with pytest.raises(HTTPException) as run_error:
+                await get_company_valuation_run(
+                    own_company.id, foreign_run.id, session
+                )
+            assert run_error.value.status_code == 404
 
             allowed = _request(own_company.id)
             await require_company_access(allowed, current_user=user, session=session)
