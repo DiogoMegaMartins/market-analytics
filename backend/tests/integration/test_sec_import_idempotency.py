@@ -43,7 +43,8 @@ async def test_real_import_twice_is_idempotent_and_preserves_restatement() -> No
         service = SECCompanyFactsImportService(FixtureSECClient())
         async with factory() as session:
             first = await service.import_company(session, company_id=company_id, cik=cik)
-            second = await service.import_company(session, company_id=company_id, cik="1")
+            # Re-import the exact same CIK and payload to exercise the cache/idempotency path.
+            second = await service.import_company(session, company_id=company_id, cik=cik)
             assert first["imported_facts"] == 2
             assert second["imported_facts"] == 0
             assert second["cache_hit"] is True
@@ -70,6 +71,7 @@ async def test_concurrent_same_payload_imports_are_database_idempotent() -> None
     engine = create_async_engine(DATABASE_URL)
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
     company_id = uuid4()
+    cik = str(uuid4().int % 10000000000).zfill(10)
     try:
         async with engine.begin() as connection:
             await connection.execute(text(
@@ -80,7 +82,7 @@ async def test_concurrent_same_payload_imports_are_database_idempotent() -> None
         async def run_once() -> dict:
             async with factory() as session:
                 return await SECCompanyFactsImportService(FixtureSECClient()).import_company(
-                    session, company_id=company_id, cik="1"
+                    session, company_id=company_id, cik=cik
                 )
 
         results = await asyncio.gather(run_once(), run_once())
