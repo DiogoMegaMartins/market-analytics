@@ -16,6 +16,8 @@ from app.api.v1.endpoints.valuation import (
     DCFValuationInput,
     create_company_dcf_valuation,
     get_company_valuation_history,
+)
+from app.api.v1.endpoints.valuation import (
     router as valuation_router,
 )
 from app.models.auth import CompanyMembership, User
