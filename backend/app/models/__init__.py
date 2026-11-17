@@ -26,6 +26,7 @@ from app.models.financial_data import (
     FinancialMetricResult,
     FinancialMetricRun,
     FinancialQualityFinding,
+    ValuationRun,
     NormalizedFinancialFact,
     SECProviderCache,
     SECRawCompanyFacts,
@@ -69,4 +70,5 @@ __all__ = [
     "SECProviderCache",
     "SECRawCompanyFacts",
     "User",
+    "ValuationRun",
 ]
