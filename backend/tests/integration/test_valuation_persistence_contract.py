@@ -1,8 +1,6 @@
 """Real-PostgreSQL contract for the company-scoped FCFF DCF API and history."""
-from __future__ import annotations
-
-import datetime
 import os
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -87,7 +85,7 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
                 email=f"valuation-{uuid4()}@example.test",
                 password_hash="not-used",
                 display_name="Valuation Analyst",
-                created_at=datetime.datetime.now(datetime.UTC),
+                created_at=datetime.now(UTC),
             )
             session.add_all([company, user])
             await session.flush()
@@ -95,7 +93,7 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
                 user_id=user.id,
                 company_id=company.id,
                 role="ANALYST",
-                created_at=datetime.datetime.now(datetime.UTC),
+                created_at=datetime.now(UTC),
             ))
             await session.flush()
 
@@ -162,7 +160,7 @@ async def test_company_dcf_access_is_tenant_scoped() -> None:
                 email=f"valuation-scope-{uuid4()}@example.test",
                 password_hash="not-used",
                 display_name="Scoped Analyst",
-                created_at=datetime.datetime.now(datetime.UTC),
+                created_at=datetime.now(UTC),
             )
             session.add_all([own_company, other_company, user])
             await session.flush()
@@ -170,7 +168,7 @@ async def test_company_dcf_access_is_tenant_scoped() -> None:
                 user_id=user.id,
                 company_id=own_company.id,
                 role="ANALYST",
-                created_at=datetime.datetime.now(datetime.UTC),
+                created_at=datetime.now(UTC),
             ))
             await session.flush()
 
