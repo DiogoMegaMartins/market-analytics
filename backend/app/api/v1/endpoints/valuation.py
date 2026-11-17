@@ -109,3 +109,33 @@ async def get_company_valuation_history(
             for run in runs
         ],
     }
+
+
+@router.get("/valuation/companies/{company_id}/runs/{run_id}")
+async def get_company_valuation_run(
+    company_id: UUID,
+    run_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return the immutable assumptions and result for one company-scoped run."""
+    run = await session.scalar(
+        select(ValuationRun).where(
+            ValuationRun.id == run_id,
+            ValuationRun.company_id == company_id,
+        )
+    )
+    if run is None:
+        # Do not disclose whether a run exists under another company.
+        raise HTTPException(status_code=404, detail="Valuation run not found")
+    return {
+        "id": str(run.id),
+        "company_id": str(run.company_id),
+        "created_at": run.created_at.isoformat(),
+        "created_by_user_id": str(run.created_by_user_id),
+        "valuation_version": run.valuation_version,
+        "method": run.method,
+        "base_year": run.base_year,
+        "currency": run.currency,
+        "assumptions": run.assumptions,
+        "result": run.result,
+    }
