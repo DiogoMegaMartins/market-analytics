@@ -11,8 +11,8 @@ from typing import Any
 
 VALUATION_VERSION = "fcff-dcf-v1"
 SCENARIOS = ("BEAR", "BASE", "BULL")
-ZERO = Decimal("0")
-ONE = Decimal("1")
+ZERO = Decimal(0)
+ONE = Decimal(1)
 
 
 def _decimal(value: Any, field: str) -> Decimal:
@@ -115,7 +115,7 @@ def calculate_fcff_dcf(
     shares = _decimal(diluted_shares, "diluted_shares")
     if not ZERO < discount_rate < ONE:
         raise ValueError("wacc must be greater than 0 and less than 1")
-    if growth_rate <= Decimal("-1") or growth_rate >= discount_rate:
+    if growth_rate <= Decimal(-1) or growth_rate >= discount_rate:
         raise ValueError("terminal_growth must be greater than -1 and lower than wacc")
     if shares <= ZERO:
         raise ValueError("diluted_shares must be positive")
