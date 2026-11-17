@@ -6,17 +6,21 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
-from fastapi import HTTPException
-from sqlalchemy import select
+from fastapi import FastAPI, HTTPException
+from httpx import ASGITransport, AsyncClient
+from sqlalchemy import select, text
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from starlette.requests import Request
 
-from app.api.v1.dependencies import require_company_access
+from app.api.v1.dependencies import get_current_user, require_company_access
 from app.api.v1.endpoints.valuation import (
     DCFValuationInput,
     create_company_dcf_valuation,
     get_company_valuation_history,
+    router as valuation_router,
 )
+from app.platform.database.session import get_db_session
 from app.models.auth import CompanyMembership, User
 from app.models.financial_data import ValuationRun
 from app.models.identity import Company
@@ -122,6 +126,26 @@ async def test_company_dcf_creation_persists_immutable_run_and_returns_history()
             assert len(history["valuations"]) == 1
             assert history["valuations"][0]["id"] == response["id"]
             assert history["valuations"][0]["method"] == "FCFF_DCF"
+
+            # PostgreSQL must reject both mutation paths, without poisoning the
+            # surrounding session transaction (each expected failure is isolated).
+            with pytest.raises(DBAPIError):
+                async with session.begin_nested():
+                    await session.execute(
+                        text("UPDATE valuation_runs SET currency = 'EUR' WHERE id = :id"),
+                        {"id": response["id"]},
+                    )
+            with pytest.raises(DBAPIError):
+                async with session.begin_nested():
+                    await session.execute(
+                        text("DELETE FROM valuation_runs WHERE id = :id"),
+                        {"id": response["id"]},
+                    )
+            still_persisted = await session.scalar(
+                select(ValuationRun).where(ValuationRun.id == response["id"])
+            )
+            assert still_persisted is not None
+            assert still_persisted.currency == "USD"
     finally:
         await engine.dispose()
 
@@ -158,5 +182,26 @@ async def test_company_dcf_access_is_tenant_scoped() -> None:
             with pytest.raises(HTTPException) as error:
                 await require_company_access(denied, current_user=user, session=session)
             assert error.value.status_code == 404
+
+            # Exercise the actual GET route so its router-level dependency is covered.
+            app = FastAPI()
+            app.include_router(valuation_router, prefix="/api/v1")
+
+            async def override_user():
+                return user
+
+            async def override_session():
+                yield session
+
+            app.dependency_overrides[get_current_user] = override_user
+            app.dependency_overrides[get_db_session] = override_session
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
+                response = await client.get(
+                    f"/api/v1/valuation/companies/{other_company.id}/history"
+                )
+            assert response.status_code == 404
     finally:
         await engine.dispose()
