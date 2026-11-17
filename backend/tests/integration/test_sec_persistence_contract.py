@@ -1,4 +1,5 @@
 """Synthetic, isolated PostgreSQL persistence tests; never production data."""
+import hashlib
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from uuid import uuid4
@@ -38,7 +39,7 @@ async def test_sec_raw_normalized_lineage_restatement_idempotency_and_rollback()
             ), {"id": company_id})
             raw = SECRawCompanyFacts(
                 id=raw_id, company_id=company_id, cik=cik, provider="SEC",
-                source_url="https://example.test/sec", payload_hash=__import__("hashlib").sha256(str(company_id).encode()).hexdigest(),
+                source_url="https://example.test/sec", payload_hash=hashlib.sha256(str(company_id).encode()).hexdigest(),
                 payload_text='{"synthetic": true}', retrieved_at=datetime.now(UTC),
             )
             fact = FinancialFact(
