@@ -99,27 +99,43 @@ def calculate_time_weighted_return(
             raise ValueError(f"a valuation before external cash-flow date {flow_date.isoformat()} is required")
         prior_date = max(prior_dates)
         prior_value = canonical[prior_date][1]
+        if start_value <= 0:
+            raise ValueError(f"non-positive starting capital before {flow_date.isoformat()}")
+        with localcontext() as context:
+            context.prec = 28
+            pre_flow_factor = prior_value / start_value
+            pre_flow_return = pre_flow_factor - Decimal(1)
+        linked_factors.append(pre_flow_factor)
+        subperiods.append({
+            "start_date": period_start.isoformat(),
+            "end_date": prior_date.isoformat(),
+            "start_value": str(start_value),
+            "external_cash_flow": "0",
+            "end_value": str(prior_value),
+            "return": str(pre_flow_return),
+        })
+
         adjusted_capital = prior_value + flows[flow_date]
         if adjusted_capital <= 0:
-            raise ValueError(f"non-positive invested capital before returns on {flow_date.isoformat()}")
+            raise ValueError(f"non-positive invested capital after external flow on {flow_date.isoformat()}")
         ending_value = canonical[flow_date][1]
         with localcontext() as context:
             context.prec = 28
-            factor = ending_value / adjusted_capital
-            period_return = factor - Decimal(1)
-        linked_factors.append(factor)
+            post_flow_factor = ending_value / adjusted_capital
+            post_flow_return = post_flow_factor - Decimal(1)
+        linked_factors.append(post_flow_factor)
         subperiods.append({
             "start_date": prior_date.isoformat(),
             "end_date": flow_date.isoformat(),
-            "start_value": str(prior_value),
+            "start_value": str(adjusted_capital),
             "external_cash_flow": str(flows[flow_date]),
             "end_value": str(ending_value),
-            "return": str(period_return),
+            "return": str(post_flow_return),
         })
         period_start = flow_date
         start_value = ending_value
 
-    final_date = max(day for day in valuation_dates if day >= period_start)
+    final_date = end_date
     final_value = canonical[final_date][1]
     if start_value <= 0:
         raise ValueError("starting portfolio value for final subperiod must be positive")
@@ -137,33 +153,3 @@ def calculate_time_weighted_return(
         "return": str(final_return),
     })
 
-    if not linked_factors:
-        raise ValueError("insufficient valuation coverage")
-    with localcontext() as context:
-        context.prec = 28
-        cumulative_factor = Decimal(1)
-        for factor in linked_factors:
-            cumulative_factor *= factor
-        total_return = cumulative_factor - Decimal(1)
-
-    return {
-        "method": "TWR_START_OF_DAY_EXTERNAL_FLOWS",
-        "start_date": start_date.isoformat(),
-        "end_date": end_date.isoformat(),
-        "starting_value": str(canonical[start_date][1]),
-        "ending_value": str(canonical[end_date][1]),
-        "external_cash_flow_count": flow_count,
-        "net_external_cash_flows": str(sum(flows.values(), Decimal(0))),
-        "subperiod_count": len(subperiods),
-        "subperiods": subperiods,
-        "time_weighted_return": str(total_return),
-        "time_weighted_return_percent": str(total_return * Decimal(100)),
-        "coverage_status": "COMPLETE",
-        "limitations": [
-            "External cash flows are assumed to occur at the start of their trade date.",
-            "A valuation is required on each date with a non-zero net external cash flow.",
-            "The latest recorded valuation on each date is selected; ties use the greatest snapshot id.",
-            "Valuations are supplied observations and are not independently verified NAV.",
-            "No FX, benchmark, fees outside portfolio valuation, or MWR/XIRR calculation is applied.",
-        ],
-    }
