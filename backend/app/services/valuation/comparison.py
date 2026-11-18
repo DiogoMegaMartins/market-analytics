@@ -32,6 +32,22 @@ def _delta(before: Decimal, after: Decimal) -> dict[str, str | None]:
     }
 
 
+def _flatten_assumptions(value: Any, prefix: str = "") -> dict[str, Any]:
+    """Flatten nested JSON objects and arrays into stable dotted paths."""
+    flattened: dict[str, Any] = {}
+    if isinstance(value, Mapping) and value:
+        for key in sorted(value, key=str):
+            path = f"{prefix}.{key}" if prefix else str(key)
+            flattened.update(_flatten_assumptions(value[key], path))
+    elif isinstance(value, list) and value:
+        for index, item in enumerate(value):
+            path = f"{prefix}.{index}" if prefix else str(index)
+            flattened.update(_flatten_assumptions(item, path))
+    else:
+        flattened[prefix or "$"] = value
+    return flattened
+
+
 def compare_valuation_run_snapshots(
     baseline: Mapping[str, Any],
     comparison: Mapping[str, Any],
@@ -75,6 +91,22 @@ def compare_valuation_run_snapshots(
         raise TypeError("valuation run assumptions must be objects")
     keys = sorted(set(old_assumptions) | set(new_assumptions))
     changed = [key for key in keys if old_assumptions.get(key) != new_assumptions.get(key)]
+
+    old_flat = _flatten_assumptions(old_assumptions)
+    new_flat = _flatten_assumptions(new_assumptions)
+    missing = object()
+    assumption_differences = []
+    for path in sorted(set(old_flat) | set(new_flat)):
+        old_value = old_flat.get(path, missing)
+        new_value = new_flat.get(path, missing)
+        if old_value != new_value:
+            assumption_differences.append({
+                "path": path,
+                "baseline": None if old_value is missing else old_value,
+                "comparison": None if new_value is missing else new_value,
+                "baseline_present": old_value is not missing,
+                "comparison_present": new_value is not missing,
+            })
     return {
         "comparison_version": "valuation-run-comparison-v1",
         "method": baseline["method"],
@@ -84,6 +116,8 @@ def compare_valuation_run_snapshots(
         "baseline_run_id": str(baseline["id"]),
         "comparison_run_id": str(comparison["id"]),
         "changed_assumption_fields": changed,
+        "changed_assumption_paths": [item["path"] for item in assumption_differences],
+        "assumption_differences": assumption_differences,
         "scenarios": scenario_deltas,
         "analyst_review_required": True,
         "investment_recommendation": None,

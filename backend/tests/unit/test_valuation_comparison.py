@@ -30,6 +30,11 @@ def test_comparison_reports_scenario_deltas_and_changed_assumptions():
     assert result["baseline_run_id"] == "baseline"
     assert result["comparison_run_id"] == "new"
     assert result["changed_assumption_fields"] == ["revenue"]
+    assert result["changed_assumption_paths"] == ["revenue"]
+    assert result["assumption_differences"] == [{
+        "path": "revenue", "baseline": "1000", "comparison": "1200",
+        "baseline_present": True, "comparison_present": True,
+    }]
     delta = result["scenarios"]["BASE"]["enterprise_value"]
     assert delta["baseline"] == "1000.0" and delta["comparison"] == "1200.0"
     assert delta["absolute"] == "200.0" and delta["percentage"] == "20.0"
@@ -72,3 +77,50 @@ def test_rejects_missing_or_non_finite_metrics():
     comparison["result"]["scenarios"]["BASE"]["enterprise_value"] = "NaN"
     with pytest.raises(ValueError, match="finite"):
         compare_valuation_run_snapshots(baseline, comparison)
+
+
+
+def test_reports_nested_scenario_assumption_paths_and_values():
+    baseline, comparison = _run("baseline"), _run("comparison")
+    baseline["assumptions"]["scenarios"] = {
+        "BASE": [{"year": 2025, "revenue": "1000", "ebit_margin": "0.20"}]
+    }
+    comparison["assumptions"]["scenarios"] = {
+        "BASE": [{"year": 2025, "revenue": "1250", "ebit_margin": "0.22"}]
+    }
+    result = compare_valuation_run_snapshots(baseline, comparison)
+    assert result["changed_assumption_fields"] == ["scenarios"]
+    assert result["changed_assumption_paths"] == [
+        "scenarios.BASE.0.ebit_margin", "scenarios.BASE.0.revenue"
+    ]
+    assert result["assumption_differences"] == [
+        {
+            "path": "scenarios.BASE.0.ebit_margin",
+            "baseline": "0.20",
+            "comparison": "0.22",
+            "baseline_present": True,
+            "comparison_present": True,
+        },
+        {
+            "path": "scenarios.BASE.0.revenue",
+            "baseline": "1000",
+            "comparison": "1250",
+            "baseline_present": True,
+            "comparison_present": True,
+        },
+    ]
+
+
+def test_reports_added_removed_and_null_assumption_values():
+    baseline, comparison = _run("baseline"), _run("comparison")
+    baseline["assumptions"]["optional"] = None
+    comparison["assumptions"].pop("revenue")
+    comparison["assumptions"]["scenarios"] = {"BASE": [{"year": 2025, "new_driver": "5"}]}
+    result = compare_valuation_run_snapshots(baseline, comparison)
+    by_path = {item["path"]: item for item in result["assumption_differences"]}
+    assert by_path["optional"]["baseline_present"] is True
+    assert by_path["optional"]["comparison_present"] is False
+    assert by_path["revenue"]["baseline"] == "1000"
+    assert by_path["revenue"]["comparison_present"] is False
+    assert by_path["scenarios.BASE.0.new_driver"]["baseline_present"] is False
+    assert by_path["scenarios.BASE.0.new_driver"]["comparison"] == "5"
