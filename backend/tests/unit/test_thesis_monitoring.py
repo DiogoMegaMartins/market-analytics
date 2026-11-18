@@ -46,5 +46,6 @@ def test_alert_response_exposes_metric_run_provenance_and_review_history_contrac
     # The response contract includes the persisted run metadata and each immutable
     # status transition; this test guards route registration while PostgreSQL
     # integration exercises the joined records.
-    assert "metric_run" in route.endpoint.__code__.co_names or "metric_runs" in route.endpoint.__code__.co_names
-    assert "history" in route.endpoint.__code__.co_names
+    assert "FinancialMetricRun" in route.endpoint.__code__.co_names
+    assert "metric_run" in route.endpoint.__code__.co_varnames
+    assert "history" in route.endpoint.__code__.co_varnames
