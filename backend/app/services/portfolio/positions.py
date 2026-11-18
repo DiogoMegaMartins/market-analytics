@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal
 from typing import Any
+from uuid import UUID
 
 CASH_SIGNS = {
     "BUY": -1,
