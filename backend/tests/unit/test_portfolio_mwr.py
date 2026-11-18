@@ -50,7 +50,10 @@ def test_xirr_rejects_ambiguous_multiple_roots():
                 _valuation("2024-01-01", 230),
                 _valuation("2025-01-01", 132),
             ],
-            [{"flow_date": "2024-01-01", "flow_type": "WITHDRAWAL", "amount": "230"}],
+            [
+                {"flow_date": "2024-01-01", "flow_type": "WITHDRAWAL", "amount": "230"},
+                {"flow_date": "2025-01-01", "flow_type": "DEPOSIT", "amount": "132"},
+            ],
             start_date=date(2023, 1, 1),
             end_date=date(2025, 1, 1),
         )
@@ -60,7 +63,7 @@ def test_xirr_rejects_cash_flows_without_a_root():
     with pytest.raises(ValueError, match="no XIRR root"):
         calculate_money_weighted_return(
             [_valuation("2025-01-01", 100), _valuation("2026-01-01", 50)],
-            [],
+            [{"flow_date": "2026-01-01", "flow_type": "DEPOSIT", "amount": "1000"}],
             start_date=date(2025, 1, 1),
             end_date=date(2026, 1, 1),
         )
