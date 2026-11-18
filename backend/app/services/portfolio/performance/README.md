@@ -10,3 +10,7 @@ Increment 5.19.0 adds immutable dated portfolio valuation inputs. A snapshot rec
 
 ## Current limitations
 This increment stores and retrieves source-attributed valuations; it does not calculate TWR, MWR/XIRR, P&L, risk or benchmarks. It does not fetch provider data, validate prices, reconcile supplied cash against the ledger, or perform FX conversion. A snapshot is an analyst-supplied input, not independently verified NAV. Multiple observations on one valuation date are allowed; downstream calculations must define a canonical-observation policy.
+
+## Increment 5.20.0 — Daily-boundary TWR
+
+The read-only endpoint `GET /api/v1/portfolio/companies/{company_id}/portfolios/{portfolio_id}/performance/twr?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` calculates geometrically linked TWR from dated valuation snapshots and DEPOSIT/WITHDRAWAL ledger flows. It assumes external flows occur at the start of their trade date and requires a valuation on each non-zero net flow date. It returns 422 when date coverage or capital conditions are insufficient rather than interpolating or estimating. No persisted performance result or schema migration is added.

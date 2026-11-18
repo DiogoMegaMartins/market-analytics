@@ -20,3 +20,4 @@ api_router.include_router(thesis_router)
 api_router.include_router(valuation_router)
 api_router.include_router(portfolio_router)
 api_router.include_router(portfolio_valuation_router)
+\nfrom app.api.v1.endpoints.portfolio_performance import router as portfolio_performance_router\napi_router.include_router(portfolio_performance_router)\n
