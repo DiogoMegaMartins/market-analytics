@@ -17,6 +17,7 @@ from app.models.identity import Company
 from app.models.portfolio import Portfolio
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
 
+
 DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL is not configured")
 
