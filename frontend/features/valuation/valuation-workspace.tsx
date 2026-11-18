@@ -14,6 +14,28 @@ type ValuationResult = {
   limitations: string[];
 };
 type ValuationRow = { id: string; created_at: string; valuation_version: string; method: string; base_year: number; currency: string; result: ValuationResult };
+type ComparisonMetric = { baseline: string; comparison: string; absolute: string; percentage: string | null };
+type ValuationComparison = {
+  comparison_version: string;
+  method: string;
+  valuation_version: string;
+  base_year: number;
+  currency: string;
+  baseline_run_id: string;
+  comparison_run_id: string;
+  changed_assumption_fields: string[];
+  scenarios: Record<"BEAR" | "BASE" | "BULL", Record<string, ComparisonMetric>>;
+  analyst_review_required: boolean;
+  investment_recommendation: null;
+  limitations: string[];
+};
+const COMPARISON_METRICS: Array<[string, string]> = [
+  ["enterprise_value", "Enterprise value"],
+  ["equity_value", "Equity value"],
+  ["value_per_share", "Valor por ação"],
+  ["present_value_explicit_fcff", "Valor presente dos FCFF explícitos"],
+  ["present_value_terminal_value", "Valor presente do valor terminal"],
+];
 const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 let refreshFlight: Promise<boolean> | null = null;
 
@@ -62,6 +84,9 @@ export default function ValuationWorkspace() {
   const [payload, setPayload] = useState("");
   const [history, setHistory] = useState<ValuationRow[]>([]);
   const [selected, setSelected] = useState<ValuationRow | null>(null);
+  const [baselineId, setBaselineId] = useState("");
+  const [comparisonId, setComparisonId] = useState("");
+  const [comparison, setComparison] = useState<ValuationComparison | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -74,6 +99,18 @@ export default function ValuationWorkspace() {
     if (!companyId.trim()) throw new Error("Indica primeiro o ID da empresa.");
     const data = await api<{ valuations: ValuationRow[] }>(`/valuation/companies/${companyId.trim()}/history`);
     setHistory(data.valuations);
+    setBaselineId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[0]?.id || "");
+    setComparisonId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[1]?.id || "");
+  }
+
+  async function compareRuns() {
+    if (!companyId.trim()) throw new Error("Indica primeiro o ID da empresa.");
+    if (!baselineId || !comparisonId) throw new Error("Seleciona duas avaliações do histórico.");
+    if (baselineId === comparisonId) throw new Error("A avaliação de referência e a de comparação têm de ser diferentes.");
+    const data = await api<ValuationComparison>(
+      `/valuation/companies/${companyId.trim()}/runs/${baselineId}/compare/${comparisonId}`,
+    );
+    setComparison(data);
   }
 
   async function calculate() {
@@ -86,6 +123,7 @@ export default function ValuationWorkspace() {
       { method: "POST", body: JSON.stringify(assumptions) },
     );
     setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });
+    setComparison(null);
     await loadHistory();
     setNotice("Avaliação calculada e guardada no histórico.");
   }
@@ -130,6 +168,34 @@ export default function ValuationWorkspace() {
         <p className="notice warning">A avaliação é uma ferramenta analítica, não uma recomendação de investimento. Confirma a adequação do método e revê todos os pressupostos, fontes e limitações.</p>
         <details className="context-details"><summary>Limitações do modelo</summary><ul>{result.limitations.map(item => <li key={item}>{item}</li>)}</ul></details>
       </section>}
+
+      <section className="panel">
+        <div className="panel-title"><div><h2>Comparar avaliações</h2><p>Compara duas avaliações persistidas sem recalcular nem alterar os snapshots.</p></div></div>
+        {history.length < 2 ? <p className="empty-state">Carrega o histórico de uma empresa com pelo menos duas avaliações para ativar a comparação.</p> : <>
+          <div className="grid-two">
+            <label className="field"><span>Avaliação de referência</span><select value={baselineId} onChange={e => { setBaselineId(e.target.value); setComparison(null); }}>
+              <option value="">Selecionar avaliação</option>{history.map(item => <option key={item.id} value={item.id}>{item.method} · {item.base_year} · {new Date(item.created_at).toLocaleString("pt-PT")}</option>)}
+            </select></label>
+            <label className="field"><span>Avaliação a comparar</span><select value={comparisonId} onChange={e => { setComparisonId(e.target.value); setComparison(null); }}>
+              <option value="">Selecionar avaliação</option>{history.map(item => <option key={item.id} value={item.id}>{item.method} · {item.base_year} · {new Date(item.created_at).toLocaleString("pt-PT")}</option>)}
+            </select></label>
+          </div>
+          <div className="toolbar bottom-toolbar"><button className="secondary" disabled={busy || !baselineId || !comparisonId || baselineId === comparisonId} onClick={() => void run(compareRuns)}>Comparar avaliações</button></div>
+        </>}
+        {comparison && <>
+          <div className="notice warning">Comparação informativa. Requer revisão do analista; não constitui uma recomendação de investimento.</div>
+          <p className="muted small">{comparison.method} · {comparison.valuation_version} · ano-base {comparison.base_year} · {comparison.currency}</p>
+          {(["BEAR", "BASE", "BULL"] as const).map(scenario => <div className="comparison-scenario" key={scenario}>
+            <h3 className="valuation-subtitle">{scenario}</h3>
+            <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Métrica</th><th>Referência</th><th>Comparação</th><th>Diferença</th><th>Variação</th></tr></thead>
+              <tbody>{COMPARISON_METRICS.map(([key, label]) => { const metric = comparison.scenarios[scenario][key]; return <tr key={key}><th>{label}</th><td>{money(metric.baseline, comparison.currency)}</td><td>{money(metric.comparison, comparison.currency)}</td><td>{money(metric.absolute, comparison.currency)}</td><td>{metric.percentage === null ? "—" : `${Number(metric.percentage).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`}</td></tr>; })}</tbody>
+            </table></div>
+          </div>)}
+          <h3 className="valuation-subtitle">Pressupostos alterados</h3>
+          {comparison.changed_assumption_fields.length ? <ul>{comparison.changed_assumption_fields.map(field => <li key={field}><code>{field}</code></li>)}</ul> : <p className="muted small">Não foram detetadas diferenças nos campos de pressupostos de topo.</p>}
+          <details className="context-details"><summary>Limitações da comparação</summary><ul>{comparison.limitations.map(item => <li key={item}>{item}</li>)}</ul></details>
+        </>}
+      </section>
 
       <section className="panel">
         <div className="panel-title"><div><h2>Histórico</h2><p>Últimas avaliações guardadas para a empresa indicada.</p></div></div>
