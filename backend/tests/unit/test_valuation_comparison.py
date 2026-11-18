@@ -1,5 +1,7 @@
 from copy import deepcopy
+
 import pytest
+
 from app.services.valuation.comparison import compare_valuation_run_snapshots
 
 
@@ -8,13 +10,18 @@ def _run(run_id: str, revenue: str = "1000") -> dict:
     for scenario, multiplier in (("BEAR", "0.8"), ("BASE", "1"), ("BULL", "1.2")):
         value = str(float(revenue) * float(multiplier))
         scenarios[scenario] = {
-            "enterprise_value": value, "equity_value": str(float(value) - 100),
+            "enterprise_value": value,
+            "equity_value": str(float(value) - 100),
             "value_per_share": str((float(value) - 100) / 50),
-            "present_value_explicit_fcff": "200", "present_value_terminal_value": str(float(value) - 200),
+            "present_value_explicit_fcff": "200",
+            "present_value_terminal_value": str(float(value) - 200),
         }
     return {
-        "id": run_id, "valuation_version": "fcff-dcf-v1", "method": "FCFF_DCF",
-        "base_year": 2024, "currency": "USD",
+        "id": run_id,
+        "valuation_version": "fcff-dcf-v1",
+        "method": "FCFF_DCF",
+        "base_year": 2024,
+        "currency": "USD",
         "assumptions": {"wacc": "0.09", "terminal_growth": "0.025", "revenue": revenue},
         "result": {"scenarios": scenarios},
     }
@@ -38,12 +45,19 @@ def test_zero_baseline_has_null_percentage_delta():
     after["result"]["scenarios"]["BASE"]["value_per_share"] = "10"
     result = compare_valuation_run_snapshots(before, after)
     delta = result["scenarios"]["BASE"]["value_per_share"]
-    assert delta["absolute"] == "10" and delta["percentage"] is None
+    assert delta["absolute"] == "10"
+    assert delta["percentage"] is None
 
 
-@pytest.mark.parametrize("field,value", [
-    ("valuation_version", "fcff-dcf-v2"), ("method", "DDM"), ("currency", "EUR"), ("base_year", 2025),
-])
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("valuation_version", "fcff-dcf-v2"),
+        ("method", "DDM"),
+        ("currency", "EUR"),
+        ("base_year", 2025),
+    ],
+)
 def test_rejects_incompatible_runs(field, value):
     baseline, comparison = _run("baseline"), _run("comparison")
     comparison[field] = value
