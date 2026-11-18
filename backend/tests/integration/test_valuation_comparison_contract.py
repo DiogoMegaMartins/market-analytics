@@ -2,10 +2,12 @@
 import os
 from datetime import UTC, datetime
 from uuid import uuid4
+
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
 from app.api.v1.dependencies import get_current_user
 from app.api.v1.endpoints.valuation import router as valuation_router
 from app.models.auth import CompanyMembership, User
@@ -22,9 +24,11 @@ def _result(revenue: str) -> dict:
     for scenario, multiplier in (("BEAR", "0.8"), ("BASE", "1"), ("BULL", "1.2")):
         value = str(float(revenue) * float(multiplier))
         scenarios[scenario] = {
-            "enterprise_value": value, "equity_value": str(float(value) - 100),
+            "enterprise_value": value,
+            "equity_value": str(float(value) - 100),
             "value_per_share": str((float(value) - 100) / 50),
-            "present_value_explicit_fcff": "200", "present_value_terminal_value": str(float(value) - 200),
+            "present_value_explicit_fcff": "200",
+            "present_value_terminal_value": str(float(value) - 200),
         }
     return {"scenarios": scenarios}
 
@@ -37,23 +41,50 @@ async def test_comparison_endpoint_is_read_only_and_hides_foreign_runs():
         async with factory() as session:
             company = Company(legal_name=f"Valuation comparison {uuid4()}")
             other_company = Company(legal_name=f"Valuation comparison other {uuid4()}")
-            user = User(email=f"valuation-compare-{uuid4()}@example.test", password_hash="not-used",
-                        display_name="Valuation Analyst", created_at=datetime.now(UTC))
+            user = User(
+                email=f"valuation-compare-{uuid4()}@example.test",
+                password_hash="not-used",
+                display_name="Valuation Analyst",
+                created_at=datetime.now(UTC),
+            )
             session.add_all([company, other_company, user])
             await session.flush()
-            session.add(CompanyMembership(user_id=user.id, company_id=company.id, role="ANALYST",
-                                          created_at=datetime.now(UTC)))
-            common = dict(valuation_version="fcff-dcf-v1", method="FCFF_DCF", base_year=2024,
-                          currency="USD", created_at=datetime.now(UTC))
-            baseline = ValuationRun(company_id=company.id, created_by_user_id=user.id,
-                                    assumptions={"wacc": "0.09", "revenue": "1000"},
-                                    result=_result("1000"), **common)
-            comparison = ValuationRun(company_id=company.id, created_by_user_id=user.id,
-                                      assumptions={"wacc": "0.08", "revenue": "1200"},
-                                      result=_result("1200"), **common)
-            foreign = ValuationRun(company_id=other_company.id, created_by_user_id=user.id,
-                                   assumptions={"wacc": "0.09", "revenue": "900"},
-                                   result=_result("900"), **common)
+            session.add(
+                CompanyMembership(
+                    user_id=user.id,
+                    company_id=company.id,
+                    role="ANALYST",
+                    created_at=datetime.now(UTC),
+                )
+            )
+            common = {
+                "valuation_version": "fcff-dcf-v1",
+                "method": "FCFF_DCF",
+                "base_year": 2024,
+                "currency": "USD",
+                "created_at": datetime.now(UTC),
+            }
+            baseline = ValuationRun(
+                company_id=company.id,
+                created_by_user_id=user.id,
+                assumptions={"wacc": "0.09", "revenue": "1000"},
+                result=_result("1000"),
+                **common,
+            )
+            comparison = ValuationRun(
+                company_id=company.id,
+                created_by_user_id=user.id,
+                assumptions={"wacc": "0.08", "revenue": "1200"},
+                result=_result("1200"),
+                **common,
+            )
+            foreign = ValuationRun(
+                company_id=other_company.id,
+                created_by_user_id=user.id,
+                assumptions={"wacc": "0.09", "revenue": "900"},
+                result=_result("900"),
+                **common,
+            )
             session.add_all([baseline, comparison, foreign])
             await session.commit()
             app = FastAPI()
@@ -67,11 +98,18 @@ async def test_comparison_endpoint_is_read_only_and_hides_foreign_runs():
 
             app.dependency_overrides[get_current_user] = override_user
             app.dependency_overrides[get_db_session] = override_session
-            async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as client:
+            async with AsyncClient(
+                transport=ASGITransport(app=app),
+                base_url="http://testserver",
+            ) as client:
                 response = await client.get(
-                    f"/api/v1/valuation/companies/{company.id}/runs/{baseline.id}/compare/{comparison.id}")
+                    f"/api/v1/valuation/companies/{company.id}/runs/"
+                    f"{baseline.id}/compare/{comparison.id}"
+                )
                 hidden = await client.get(
-                    f"/api/v1/valuation/companies/{company.id}/runs/{baseline.id}/compare/{foreign.id}")
+                    f"/api/v1/valuation/companies/{company.id}/runs/"
+                    f"{baseline.id}/compare/{foreign.id}"
+                )
             assert response.status_code == 200
             data = response.json()
             assert data["scenarios"]["BASE"]["enterprise_value"]["percentage"] == "20.0"
