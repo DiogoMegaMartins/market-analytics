@@ -4,7 +4,7 @@ Increment 5.16.0 implements tenant-scoped portfolio containers and an append-onl
 
 - Supported entries: BUY, SELL, DIVIDEND, DEPOSIT, WITHDRAWAL, FEE, TAX and INTEREST.
 - Every entry stores trade date, optional settlement date, original amount/currency, fees, taxes, source reference and an idempotency key.
-- BUY/SELL require a verified asset reference, positive quantity and price, and exact gross amount arithmetic.
+- BUY/SELL require an existing asset reference, positive quantity and price, and exact gross amount arithmetic.
 - Transaction currency must match the portfolio base currency in this increment; FX conversion is intentionally deferred.
 - The ledger is append-only at the PostgreSQL layer. Corrections must be represented by future compensating entries, not mutation or deletion.
 - Portfolio and transaction reads/writes are company-membership scoped.
