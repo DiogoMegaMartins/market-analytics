@@ -28,7 +28,7 @@ class Portfolio(UUIDPrimaryKeyMixin, Base):
         UniqueConstraint("id", "company_id", name="uq_portfolios_id_company"),
         Index("ix_portfolios_company_status_updated", "company_id", "status", "updated_at"),
         CheckConstraint("status IN ('ACTIVE','ARCHIVED')", name="ck_portfolios_status"),
-        CheckConstraint("base_currency ~ '^[A-Z]{3}$'", name="ck_portfolios_currency"),
+        CheckConstraint("length(base_currency) = 3 AND base_currency = upper(base_currency)", name="ck_portfolios_currency"),
     )
 
     company_id: Mapped[UUID] = mapped_column(
@@ -54,7 +54,7 @@ class PortfolioTransaction(UUIDPrimaryKeyMixin, Base):
             ["portfolio_id", "company_id"], ["portfolios.id", "portfolios.company_id"],
             ondelete="RESTRICT",
         ),
-        CheckConstraint("currency ~ '^[A-Z]{3}$'", name="ck_portfolio_transactions_currency"),
+        CheckConstraint("length(currency) = 3 AND currency = upper(currency)", name="ck_portfolio_transactions_currency"),
         CheckConstraint("length(idempotency_key) > 0", name="ck_portfolio_transactions_idempotency_nonempty"),
         Index("ix_portfolio_transactions_portfolio_trade_recorded", "portfolio_id", "trade_date", "recorded_at"),
         Index("ix_portfolio_transactions_asset_trade", "asset_id", "trade_date"),
