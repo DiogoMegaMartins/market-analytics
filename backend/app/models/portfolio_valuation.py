@@ -20,7 +20,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.platform.database.base import Base, UUIDPrimaryKeyMixin
 
 
-
 class PortfolioValuationSnapshot(UUIDPrimaryKeyMixin, Base):
     """Immutable, dated portfolio valuation input for future performance calculations."""
 
