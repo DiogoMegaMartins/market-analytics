@@ -52,7 +52,7 @@ def test_xirr_rejects_ambiguous_multiple_roots():
             ],
             [
                 {"flow_date": "2024-01-01", "flow_type": "WITHDRAWAL", "amount": "230"},
-                {"flow_date": "2025-01-01", "flow_type": "DEPOSIT", "amount": "132"},
+                {"flow_date": "2025-01-01", "flow_type": "DEPOSIT", "amount": "131"},
             ],
             start_date=date(2023, 1, 1),
             end_date=date(2025, 1, 1),
