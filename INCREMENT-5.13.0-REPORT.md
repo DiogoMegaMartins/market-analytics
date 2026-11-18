@@ -24,4 +24,12 @@ Tornar a comparação entre duas avaliações persistidas mais explicável, most
 
 ## Validação
 
-A validação automatizada será executada pelo GitHub Actions do pull request. O resultado final será registado após a conclusão da CI.
+GitHub Actions — run [44380715432](https://github.com/DiogoMegaMartins/market-analytics/actions/runs/44380715432): **completed / success**.
+
+- `backend-quality`: success (Ruff, import ordering e sintaxe Python).
+- `backend-postgres`: success (migrações, downgrade/upgrade, testes backend/PostgreSQL, confirmação de que os testes de integração não foram ignorados e API health smoke test).
+- `frontend-build`: success (type-check e build).
+- `container-images`: success (imagens API e frontend).
+- `neon-integration-migrations`: skipped, conforme configuração manual-only.
+
+Não foram observadas falhas nos jobs obrigatórios.
