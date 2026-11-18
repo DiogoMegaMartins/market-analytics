@@ -35,10 +35,10 @@ def test_xirr_uses_deposits_as_negative_and_withdrawals_as_positive_flows():
         end_date=date(2026, 1, 1),
     )
     flows = {item["date"]: Decimal(item["investor_cash_flow"]) for item in result["cash_flows"]}
-    assert flows["2025-04-01"] == Decimal("-50")
-    assert flows["2025-07-01"] == Decimal("10")
-    assert flows["2025-01-01"] == Decimal("-100")
-    assert flows["2026-01-01"] == Decimal("170")
+    assert flows["2025-04-01"] == Decimal(-50)
+    assert flows["2025-07-01"] == Decimal(10)
+    assert flows["2025-01-01"] == Decimal(-100)
+    assert flows["2026-01-01"] == Decimal(170)
     assert result["external_cash_flow_count"] == 2
 
 
@@ -101,5 +101,5 @@ def test_latest_valuation_per_date_is_canonical():
         start_date=date(2025, 1, 1),
         end_date=date(2026, 1, 1),
     )
-    assert Decimal(result["ending_value"]) == Decimal("110")
+    assert Decimal(result["ending_value"]) == Decimal(110)
     assert Decimal(result["money_weighted_return"]).quantize(Decimal("0.0001")) == Decimal("0.1000")
