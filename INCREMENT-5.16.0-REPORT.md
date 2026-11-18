@@ -8,7 +8,7 @@ Introduzir o primeiro alicerce persistente de Portfolio & Backtesting: carteiras
 
 - Novo modelo `Portfolio` com empresa, nome, moeda base, estado e autoria.
 - Novo modelo `PortfolioTransaction` com tipo, activo, trade/settlement dates, quantidade, preço, montante bruto, moeda, fees, taxes, referência externa e idempotency key.
-- Migração Alembic `0022_portfolio_transaction_ledger`, com chaves estrangeiras, constraints de forma e valores, índices e trigger PostgreSQL que bloqueia UPDATE/DELETE das transações.
+- Migração Alembic (revision `0022_portfolio_ledger`), com chaves estrangeiras, constraints de forma e valores, índices e trigger PostgreSQL que bloqueia UPDATE/DELETE das transações.
 - API autenticada:
   - `POST /api/v1/portfolio/companies/{company_id}/portfolios`
   - `GET /api/v1/portfolio/companies/{company_id}/portfolios`
