@@ -417,12 +417,26 @@ async def list_thesis_alerts(thesis_id: UUID, request: Request, session: AsyncSe
     thesis = await _owned_thesis(thesis_id, request, session)
     alerts = list((await session.scalars(select(InvestmentThesisAlert).where(
         InvestmentThesisAlert.thesis_id == thesis.id).order_by(InvestmentThesisAlert.created_at.desc()))).all())
+    run_ids = {alert.metric_run_id for alert in alerts}
+    metric_runs = {
+        run.id: run for run in (await session.scalars(
+            select(FinancialMetricRun).where(FinancialMetricRun.id.in_(run_ids))
+        )).all()
+    } if run_ids else {}
     result = []
     for alert in alerts:
         history = list((await session.scalars(select(InvestmentThesisAlertEvent).where(
             InvestmentThesisAlertEvent.alert_id == alert.id).order_by(InvestmentThesisAlertEvent.created_at))).all())
+        metric_run = metric_runs.get(alert.metric_run_id)
         result.append({"id": str(alert.id), "version_id": str(alert.version_id), "assumption_id": alert.assumption_id,
-            "metric_run_id": str(alert.metric_run_id), "alert_type": alert.alert_type, "status": alert.status,
+            "metric_run_id": str(alert.metric_run_id), "metric_run": ({
+                "id": str(metric_run.id), "fiscal_year": metric_run.fiscal_year,
+                "created_at": metric_run.created_at.isoformat(), "engine_version": metric_run.engine_version,
+                "resolution_policy": metric_run.resolution_policy, "as_known_at": (
+                    metric_run.as_known_at.isoformat() if metric_run.as_known_at else None
+                ), "status": metric_run.status,
+            } if metric_run else None),
+            "alert_type": alert.alert_type, "status": alert.status,
             "summary": alert.summary, "details": alert.details, "created_at": alert.created_at.isoformat(),
             "updated_at": alert.updated_at.isoformat(), "history": [{"from_status": e.from_status,
                 "to_status": e.to_status, "actor_user_id": str(e.actor_user_id), "comment": e.comment,
