@@ -1,5 +1,4 @@
 from datetime import date
-from decimal import InvalidOperation
 
 import pytest
 
@@ -78,7 +77,7 @@ def test_rejects_unknown_transaction_types_and_non_finite_values():
             [_tx("SPLIT", asset="asset-a", quantity="2")],
             as_of=date(2026, 1, 31),
         )
-    with pytest.raises(InvalidOperation):
+    with pytest.raises(ValueError, match="finite"):
         build_portfolio_position_snapshot(
             [_tx("DEPOSIT", gross="NaN")],
             as_of=date(2026, 1, 31),

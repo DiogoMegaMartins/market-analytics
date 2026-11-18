@@ -27,7 +27,7 @@ def _decimal(value: Any) -> Decimal:
 
 
 def _value(transaction: Mapping[str, Any], key: str) -> Any:
-    return transaction.get(key)
+    return transaction[key] if key in transaction else None
 
 
 def build_portfolio_position_snapshot(
