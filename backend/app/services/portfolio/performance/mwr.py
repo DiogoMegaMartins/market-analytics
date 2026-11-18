@@ -31,10 +31,10 @@ def _date(value: Any, label: str) -> date:
 
 
 def _npv(log_rate: float, dated_amounts: list[tuple[int, float]]) -> float:
-    try:
-        return math.fsum(amount * math.exp(-log_rate * (days / 365.0)) for days, amount in dated_amounts)
-    except OverflowError:
-        return math.copysign(math.inf, amount)
+    return math.fsum(
+        amount * math.exp(max(-700.0, min(700.0, -log_rate * (days / 365.0))))
+        for days, amount in dated_amounts
+    )
 
 
 def _bisect_root(
@@ -157,9 +157,11 @@ def calculate_money_weighted_return(
     dated[end_date] += ending_value
     dated = {day: amount for day, amount in dated.items() if amount != 0}
     origin = min(dated)
-    dated_amounts = [((day - origin).days, float(amount)) for day, amount in sorted(dated.items())]
-    if any(not math.isfinite(amount) for _, amount in dated_amounts):
+    raw_amounts = [((day - origin).days, float(amount)) for day, amount in sorted(dated.items())]
+    if any(not math.isfinite(amount) for _, amount in raw_amounts):
         raise ValueError("cash flows exceed the supported numeric range")
+    scale = max(abs(amount) for _, amount in raw_amounts)
+    dated_amounts = [(days, amount / scale) for days, amount in raw_amounts]
 
     rate, root_count = _solve_xirr(dated_amounts)
     if not math.isfinite(rate):
