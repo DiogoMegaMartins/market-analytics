@@ -8,6 +8,7 @@ from app.api.v1.endpoints.financial_data import router as financial_data_router
 from app.api.v1.endpoints.identity import router as identity_router
 from app.api.v1.endpoints.metrics import router as metrics_router
 from app.api.v1.endpoints.portfolio import router as portfolio_router
+from app.api.v1.endpoints.portfolio_mwr import router as portfolio_mwr_router
 from app.api.v1.endpoints.portfolio_performance import router as portfolio_performance_router
 from app.api.v1.endpoints.valuation import router as valuation_router
 from app.main import app
@@ -24,7 +25,7 @@ def _has_bearer_security(operation: dict) -> bool:
 
 def test_company_scoped_api_routers_require_company_access():
     # Authorization is deliberately applied at router level to every operation.
-    for router in (business_quality_router, financial_data_router, metrics_router, valuation_router, portfolio_router, portfolio_performance_router):
+    for router in (business_quality_router, financial_data_router, metrics_router, valuation_router, portfolio_router, portfolio_performance_router, portfolio_mwr_router):
         assert require_company_access in _router_dependency_calls(router)
 
 
