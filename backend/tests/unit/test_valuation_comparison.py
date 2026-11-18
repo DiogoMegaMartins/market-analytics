@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 import pytest
 
 from app.services.valuation.comparison import compare_valuation_run_snapshots
