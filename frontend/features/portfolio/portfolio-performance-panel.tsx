@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { api } from "./portfolio-workspace";
 
 type Subperiod = { start_date: string; end_date: string; start_value: string; end_value: string; return: string };
 type TWR = {
@@ -14,7 +13,7 @@ type MWR = {
   external_cash_flow_count: number; money_weighted_return: string; money_weighted_return_percent: string;
   day_count: string; root_count: number; coverage_status: string; limitations: string[];
 };
-type Props = { companyId: string; portfolioId: string; currency: string };
+type Props = { companyId: string; portfolioId: string; currency: string; request: (path: string) => Promise<unknown> };
 const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 const defaultStart = () => { const d = new Date(); d.setUTCFullYear(d.getUTCFullYear() - 1); return isoDate(d); };
 const percent = (value: string) => {
@@ -26,7 +25,7 @@ const money = (value: string, currency: string) => {
   return Number.isFinite(n) ? new Intl.NumberFormat("pt-PT", { style: "currency", currency, maximumFractionDigits: 2 }).format(n) : "—";
 };
 
-export default function PortfolioPerformancePanel({ companyId, portfolioId, currency }: Props) {
+export default function PortfolioPerformancePanel({ companyId, portfolioId, currency, request }: Props) {
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(() => isoDate(new Date()));
   const [twr, setTwr] = useState<TWR | null>(null);
@@ -41,8 +40,8 @@ export default function PortfolioPerformancePanel({ companyId, portfolioId, curr
     const base = `/portfolio/companies/${companyId.trim()}/portfolios/${portfolioId}/performance`;
     const query = `?start_date=${startDate}&end_date=${endDate}`;
     const [twrResult, mwrResult] = await Promise.allSettled([
-      api<TWR>(`${base}/twr${query}`),
-      api<MWR>(`${base}/mwr${query}`),
+      request(`${base}/twr${query}`).then(value => value as TWR),
+      request(`${base}/mwr${query}`).then(value => value as MWR),
     ]);
     if (twrResult.status === "fulfilled") setTwr(twrResult.value);
     else setTwrError(twrResult.reason instanceof Error ? twrResult.reason.message : "Não foi possível calcular TWR.");
