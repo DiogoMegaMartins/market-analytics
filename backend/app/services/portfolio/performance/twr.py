@@ -101,19 +101,20 @@ def calculate_time_weighted_return(
         prior_value = canonical[prior_date][1]
         if start_value <= 0:
             raise ValueError(f"non-positive starting capital before {flow_date.isoformat()}")
-        with localcontext() as context:
-            context.prec = 28
-            pre_flow_factor = prior_value / start_value
-            pre_flow_return = pre_flow_factor - Decimal(1)
-        linked_factors.append(pre_flow_factor)
-        subperiods.append({
-            "start_date": period_start.isoformat(),
-            "end_date": prior_date.isoformat(),
-            "start_value": str(start_value),
-            "external_cash_flow": "0",
-            "end_value": str(prior_value),
-            "return": str(pre_flow_return),
-        })
+        if prior_date > period_start:
+            with localcontext() as context:
+                context.prec = 28
+                pre_flow_factor = prior_value / start_value
+                pre_flow_return = pre_flow_factor - Decimal(1)
+            linked_factors.append(pre_flow_factor)
+            subperiods.append({
+                "start_date": period_start.isoformat(),
+                "end_date": prior_date.isoformat(),
+                "start_value": str(start_value),
+                "external_cash_flow": "0",
+                "end_value": str(prior_value),
+                "return": str(pre_flow_return),
+            })
 
         adjusted_capital = prior_value + flows[flow_date]
         if adjusted_capital <= 0:
