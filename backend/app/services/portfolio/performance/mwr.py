@@ -3,11 +3,11 @@
 Investor perspective: contributions/deposits are negative; withdrawals/distributions
 and terminal portfolio NAV are positive. Actual/365 day-count is used.
 """
+import math
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal, InvalidOperation
-import math
 from typing import Any
 
 
