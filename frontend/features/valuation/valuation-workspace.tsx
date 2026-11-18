@@ -122,7 +122,8 @@ export default function ValuationWorkspace() {
       `/valuation/companies/${companyId.trim()}/dcf`,
       { method: "POST", body: JSON.stringify(assumptions) },
     );
-    setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });\n    setComparison(null);
+    setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });
+    setComparison(null);
     await loadHistory();
     setNotice("Avaliação calculada e guardada no histórico.");
   }
@@ -167,6 +168,34 @@ export default function ValuationWorkspace() {
         <p className="notice warning">A avaliação é uma ferramenta analítica, não uma recomendação de investimento. Confirma a adequação do método e revê todos os pressupostos, fontes e limitações.</p>
         <details className="context-details"><summary>Limitações do modelo</summary><ul>{result.limitations.map(item => <li key={item}>{item}</li>)}</ul></details>
       </section>}
+
+      <section className="panel">
+        <div className="panel-title"><div><h2>Comparar avaliações</h2><p>Compara duas avaliações persistidas sem recalcular nem alterar os snapshots.</p></div></div>
+        {history.length < 2 ? <p className="empty-state">Carrega o histórico de uma empresa com pelo menos duas avaliações para ativar a comparação.</p> : <>
+          <div className="grid-two">
+            <label className="field"><span>Avaliação de referência</span><select value={baselineId} onChange={e => { setBaselineId(e.target.value); setComparison(null); }}>
+              <option value="">Selecionar avaliação</option>{history.map(item => <option key={item.id} value={item.id}>{item.method} · {item.base_year} · {new Date(item.created_at).toLocaleString("pt-PT")}</option>)}
+            </select></label>
+            <label className="field"><span>Avaliação a comparar</span><select value={comparisonId} onChange={e => { setComparisonId(e.target.value); setComparison(null); }}>
+              <option value="">Selecionar avaliação</option>{history.map(item => <option key={item.id} value={item.id}>{item.method} · {item.base_year} · {new Date(item.created_at).toLocaleString("pt-PT")}</option>)}
+            </select></label>
+          </div>
+          <div className="toolbar bottom-toolbar"><button className="secondary" disabled={busy || !baselineId || !comparisonId || baselineId === comparisonId} onClick={() => void run(compareRuns)}>Comparar avaliações</button></div>
+        </>}
+        {comparison && <>
+          <div className="notice warning">Comparação informativa. Requer revisão do analista; não constitui uma recomendação de investimento.</div>
+          <p className="muted small">{comparison.method} · {comparison.valuation_version} · ano-base {comparison.base_year} · {comparison.currency}</p>
+          {(["BEAR", "BASE", "BULL"] as const).map(scenario => <div className="comparison-scenario" key={scenario}>
+            <h3 className="valuation-subtitle">{scenario}</h3>
+            <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Métrica</th><th>Referência</th><th>Comparação</th><th>Diferença</th><th>Variação</th></tr></thead>
+              <tbody>{COMPARISON_METRICS.map(([key, label]) => { const metric = comparison.scenarios[scenario][key]; return <tr key={key}><th>{label}</th><td>{money(metric.baseline, comparison.currency)}</td><td>{money(metric.comparison, comparison.currency)}</td><td>{money(metric.absolute, comparison.currency)}</td><td>{metric.percentage === null ? "—" : `${Number(metric.percentage).toLocaleString("pt-PT", { maximumFractionDigits: 2 })}%`}</td></tr>; })}</tbody>
+            </table></div>
+          </div>)}
+          <h3 className="valuation-subtitle">Pressupostos alterados</h3>
+          {comparison.changed_assumption_fields.length ? <ul>{comparison.changed_assumption_fields.map(field => <li key={field}><code>{field}</code></li>)}</ul> : <p className="muted small">Não foram detetadas diferenças nos campos de pressupostos de topo.</p>}
+          <details className="context-details"><summary>Limitações da comparação</summary><ul>{comparison.limitations.map(item => <li key={item}>{item}</li>)}</ul></details>
+        </>}
+      </section>
 
       <section className="panel">
         <div className="panel-title"><div><h2>Histórico</h2><p>Últimas avaliações guardadas para a empresa indicada.</p></div></div>
