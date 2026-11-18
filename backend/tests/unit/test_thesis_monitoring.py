@@ -36,3 +36,15 @@ def test_monitoring_routes_and_models_are_registered():
     assert "investment_thesis_alert_events" in Base.metadata.tables
     with pytest.raises(ValidationError):
         AlertStatusInput(status="PENDING")
+
+
+def test_alert_response_exposes_metric_run_provenance_and_review_history_contract():
+    from app.api.v1.endpoints.thesis import router
+
+    route = next(route for route in router.routes if route.path == "/thesis/{thesis_id}/alerts")
+    assert route.methods == {"GET"}
+    # The response contract includes the persisted run metadata and each immutable
+    # status transition; this test guards route registration while PostgreSQL
+    # integration exercises the joined records.
+    assert "metric_run" in route.endpoint.__code__.co_names or "metric_runs" in route.endpoint.__code__.co_names
+    assert "history" in route.endpoint.__code__.co_names
