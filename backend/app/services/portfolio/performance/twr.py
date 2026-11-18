@@ -153,3 +153,32 @@ def calculate_time_weighted_return(
         "return": str(final_return),
     })
 
+
+    with localcontext() as context:
+        context.prec = 28
+        cumulative_factor = Decimal(1)
+        for factor in linked_factors:
+            cumulative_factor *= factor
+        total_return = cumulative_factor - Decimal(1)
+
+    return {
+        "method": "TWR_START_OF_DAY_EXTERNAL_FLOWS",
+        "start_date": start_date.isoformat(),
+        "end_date": end_date.isoformat(),
+        "starting_value": str(canonical[start_date][1]),
+        "ending_value": str(canonical[end_date][1]),
+        "external_cash_flow_count": flow_count,
+        "net_external_cash_flows": str(sum(flows.values(), Decimal(0))),
+        "subperiod_count": len(subperiods),
+        "subperiods": subperiods,
+        "time_weighted_return": str(total_return),
+        "time_weighted_return_percent": str(total_return * Decimal(100)),
+        "coverage_status": "COMPLETE",
+        "limitations": [
+            "External cash flows are assumed to occur at the start of their trade date.",
+            "A valuation is required on each date with a non-zero net external cash flow.",
+            "The latest recorded valuation on each date is selected; ties use the greatest snapshot id.",
+            "Valuations are supplied observations and are not independently verified NAV.",
+            "No FX, benchmark, fees outside portfolio valuation, or MWR/XIRR calculation is applied.",
+        ],
+    }
