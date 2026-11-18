@@ -67,14 +67,14 @@ async def test_comparison_endpoint_is_read_only_and_hides_foreign_runs():
             baseline = ValuationRun(
                 company_id=company.id,
                 created_by_user_id=user.id,
-                assumptions={"wacc": "0.09", "revenue": "1000"},
+                assumptions={"wacc": "0.09", "revenue": "1000", "scenarios": {"BASE": [{"year": 2025, "revenue": "1000"}]}},
                 result=_result("1000"),
                 **common,
             )
             comparison = ValuationRun(
                 company_id=company.id,
                 created_by_user_id=user.id,
-                assumptions={"wacc": "0.08", "revenue": "1200"},
+                assumptions={"wacc": "0.08", "revenue": "1200", "scenarios": {"BASE": [{"year": 2025, "revenue": "1200"}]}},
                 result=_result("1200"),
                 **common,
             )
@@ -113,7 +113,17 @@ async def test_comparison_endpoint_is_read_only_and_hides_foreign_runs():
             assert response.status_code == 200
             data = response.json()
             assert data["scenarios"]["BASE"]["enterprise_value"]["percentage"] == "20.0"
-            assert data["changed_assumption_fields"] == ["revenue", "wacc"]
+            assert data["changed_assumption_fields"] == ["revenue", "scenarios", "wacc"]
+            assert data["changed_assumption_paths"] == [
+                "revenue", "scenarios.BASE.0.revenue", "wacc"
+            ]
+            assert data["assumption_differences"][1] == {
+                "path": "scenarios.BASE.0.revenue",
+                "baseline": "1000",
+                "comparison": "1200",
+                "baseline_present": True,
+                "comparison_present": True,
+            }
             assert hidden.status_code == 404
             await session.refresh(baseline)
             await session.refresh(comparison)
