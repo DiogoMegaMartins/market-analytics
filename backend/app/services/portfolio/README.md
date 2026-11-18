@@ -2,11 +2,11 @@
 
 Increment 5.16.0 implements tenant-scoped portfolio containers and an append-only transaction ledger.
 
-- Supported entries: BUY, SELL, DIVIDEND, DEPOSIT, WITHDRAWAL, FEE, TAX and INTEREST.
-- Every entry stores trade date, optional settlement date, original amount/currency, fees, taxes, source reference and an idempotency key.
-- BUY/SELL require an existing asset reference, positive quantity and price, and exact gross amount arithmetic.
-- Transaction currency must match the portfolio base currency in this increment; FX conversion is intentionally deferred.
-- The ledger is append-only at the PostgreSQL layer. Corrections must be represented by future compensating entries, not mutation or deletion.
-- Portfolio and transaction reads/writes are company-membership scoped.
+Increment 5.17.0 adds deterministic, read-only snapshots:
+- Net asset quantities derived from BUY and SELL entries by trade date.
+- Trade-date and settlement-date cash balances, with trade-date fallback if settlement date is absent.
+- Cash movement totals by transaction type, including fees and taxes.
+- Negative holdings are preserved and flagged for analyst review; no automatic correction is made.
+- No lot accounting, cost basis, realized/unrealized P&L, FX, corporate actions, or broker/bank statement reconciliation is inferred.
 
-Not yet implemented: positions, lot accounting (FIFO/average/specific lots), cash reconciliation, corporate actions, FX, TWR/MWR, risk and backtesting. No investment recommendation is produced.
+Every API access remains company scoped. Asset references supplied for new transactions must belong to the same company as the portfolio.
