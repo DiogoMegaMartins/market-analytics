@@ -60,7 +60,7 @@ def test_latest_recorded_valuation_is_canonical_for_same_date():
             _valuation("2026-01-31", 120, recorded="2026-01-31T11:00:00+00:00", identifier="new"),
         ], [], start_date=date(2026, 1, 1), end_date=date(2026, 1, 31),
     )
-    assert Decimal(result["ending_value"]) == Decimal("120")
+    assert Decimal(result["ending_value"]) == 120
     assert Decimal(result["time_weighted_return"]) == Decimal("0.2")
 
 
