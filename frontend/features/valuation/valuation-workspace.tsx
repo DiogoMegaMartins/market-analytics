@@ -25,6 +25,14 @@ type ValuationComparison = {
   baseline_run_id: string;
   comparison_run_id: string;
   changed_assumption_fields: string[];
+  changed_assumption_paths: string[];
+  assumption_differences: Array<{
+    path: string;
+    baseline: unknown;
+    comparison: unknown;
+    baseline_present: boolean;
+    comparison_present: boolean;
+  }>;
   scenarios: Record<"BEAR" | "BASE" | "BULL", Record<string, ComparisonMetric>>;
   analyst_review_required: boolean;
   investment_recommendation: null;
@@ -222,7 +230,21 @@ export default function ValuationWorkspace() {
             </table></div>
           </div>)}
           <h3 className="valuation-subtitle">Pressupostos alterados</h3>
-          {comparison.changed_assumption_fields.length ? <ul>{comparison.changed_assumption_fields.map(field => <li key={field}><code>{field}</code></li>)}</ul> : <p className="muted small">Não foram detetadas diferenças nos campos de pressupostos de topo.</p>}
+          {comparison.assumption_differences.length ? (
+            <div className="table-scroll"><table className="valuation-table">
+              <thead><tr><th>Caminho do pressuposto</th><th>Referência</th><th>Comparação</th></tr></thead>
+              <tbody>{comparison.assumption_differences.map(item => (
+                <tr key={item.path}>
+                  <th><code>{item.path}</code></th>
+                  <td>{item.baseline_present ? <code>{JSON.stringify(item.baseline)}</code> : <span className="muted">Não existia</span>}</td>
+                  <td>{item.comparison_present ? <code>{JSON.stringify(item.comparison)}</code> : <span className="muted">Removido</span>}</td>
+                </tr>
+              ))}</tbody>
+            </table></div>
+          ) : <p className="muted small">Não foram detetadas diferenças nos pressupostos.</p>}
+          <details className="context-details"><summary>Resumo dos campos de topo alterados</summary>
+            {comparison.changed_assumption_fields.length ? <ul>{comparison.changed_assumption_fields.map(field => <li key={field}><code>{field}</code></li>)}</ul> : <p className="muted small">Sem diferenças.</p>}
+          </details>
           <details className="context-details"><summary>Limitações da comparação</summary><ul>{comparison.limitations.map(item => <li key={item}>{item}</li>)}</ul></details>
         </>}
       </section>
