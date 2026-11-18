@@ -23,7 +23,7 @@ jobs:
         run: python -m ruff --version
       - name: Diagnose valuation test import ordering
         working-directory: backend
-        run: python -m ruff check --select I --diff tests/integration/test_valuation_persistence_contract.py || true
+        run: python -m ruff check --select I --diff tests/integration/test_valuation_persistence_contract.py app/models/portfolio_valuation.py tests/integration/test_portfolio_valuation_contract.py || true
       - name: Check lint and import ordering
         working-directory: backend
         run: python -m ruff check --output-format=github app tests
