@@ -11,12 +11,14 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.api.v1.endpoints.portfolio_valuation import PortfolioValuationCreate, create_portfolio_valuation
+from app.api.v1.endpoints.portfolio_valuation import (
+    PortfolioValuationCreate,
+    create_portfolio_valuation,
+)
 from app.models.auth import CompanyMembership, User
 from app.models.identity import Company
 from app.models.portfolio import Portfolio
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
-
 
 DATABASE_URL = os.getenv("TEST_DATABASE_URL")
 pytestmark = pytest.mark.skipif(not DATABASE_URL, reason="TEST_DATABASE_URL is not configured")
