@@ -16,4 +16,6 @@ Tornar os alertas de monitorização rastreáveis à execução de métricas per
 - Alertas permanecem informativos e não provocam alterações automáticas nem invalidação da tese.
 
 ## Validação
-A validação automatizada será reportada após a execução do GitHub Actions para este pull request.
+- GitHub Actions run `44386554265` para o commit `3dca19ae15a2df937b21e7ad811f88114e2a7d24`: backend-quality, backend-postgres, frontend-build e container-images concluídos com sucesso.
+- `neon-integration-migrations` foi ignorado por ser manual-only; não foi executado.
+- A primeira execução identificou uma asserção demasiado estrita no teste de contrato; a asserção foi corrigida e a execução subsequente passou.
