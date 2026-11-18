@@ -12,8 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import require_company_access
 from app.models.identity import Asset, Company
 from app.models.portfolio import Portfolio, PortfolioTransaction
-from app.platform.database.session import get_db_session
-from app.services.portfolio.positions import build_portfolio_position_snapshot
+from app.platform.database.session import get_db_session\nfrom app.services.portfolio.positions import build_portfolio_position_snapshot
 
 router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_company_access)])
 
