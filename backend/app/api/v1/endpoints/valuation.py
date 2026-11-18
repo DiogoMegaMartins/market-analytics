@@ -11,6 +11,7 @@ from app.api.v1.dependencies import require_company_access
 from app.models.financial_data import ValuationRun
 from app.models.identity import Company
 from app.platform.database.session import get_db_session
+from app.services.valuation.comparison import compare_valuation_run_snapshots
 from app.services.valuation.dcf import calculate_fcff_dcf
 
 router = APIRouter(tags=["valuation"], dependencies=[Depends(require_company_access)])
@@ -163,7 +164,6 @@ async def compare_company_valuation_runs(
     baseline, comparison = by_id.get(baseline_run_id), by_id.get(comparison_run_id)
     if baseline is None or comparison is None:
         raise HTTPException(status_code=404, detail="Valuation run not found")
-    from app.services.valuation.comparison import compare_valuation_run_snapshots
     try:
         result = compare_valuation_run_snapshots(
             {"id": baseline.id, "valuation_version": baseline.valuation_version,
