@@ -22,6 +22,14 @@ class PortfolioCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     base_currency: str = Field(pattern="^[A-Z]{3}$")
 
+    @field_validator("name")
+    @classmethod
+    def nonblank_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("name cannot be blank")
+        return value
+
 
 class PortfolioTransactionCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -131,7 +139,7 @@ async def create_portfolio(
         raise HTTPException(status_code=404, detail="Company not found")
     now = datetime.now(UTC)
     portfolio = Portfolio(
-        company_id=company_id, name=payload.name.strip(), base_currency=payload.base_currency,
+        company_id=company_id, name=payload.name, base_currency=payload.base_currency,
         status="ACTIVE", created_by_user_id=request.state.authenticated_user.id,
         created_at=now, updated_at=now,
     )
