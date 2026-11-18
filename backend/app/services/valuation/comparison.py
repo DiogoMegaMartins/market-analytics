@@ -1,6 +1,7 @@
 """Deterministic comparison of persisted valuation run snapshots."""
+from collections.abc import Mapping
 from decimal import Decimal, InvalidOperation
-from typing import Any, Mapping
+from typing import Any
 
 SCENARIOS = ("BEAR", "BASE", "BULL")
 COMPARABLE_METRICS = (
@@ -24,7 +25,7 @@ def _number(value: Any, field: str) -> Decimal:
 
 def _delta(before: Decimal, after: Decimal) -> dict[str, str | None]:
     absolute = after - before
-    percentage = absolute / before * Decimal("100") if before != 0 else None
+    percentage = absolute / before * Decimal(100) if before != 0 else None
     return {
         "absolute": str(absolute),
         "percentage": str(percentage) if percentage is not None else None,
@@ -42,11 +43,11 @@ def compare_valuation_run_snapshots(
     baseline_result = baseline.get("result")
     comparison_result = comparison.get("result")
     if not isinstance(baseline_result, Mapping) or not isinstance(comparison_result, Mapping):
-        raise ValueError("valuation run results must be objects")
+        raise TypeError("valuation run results must be objects")
     old_scenarios = baseline_result.get("scenarios")
     new_scenarios = comparison_result.get("scenarios")
     if not isinstance(old_scenarios, Mapping) or not isinstance(new_scenarios, Mapping):
-        raise ValueError("valuation run results must contain scenario objects")
+        raise TypeError("valuation run results must contain scenario objects")
     if set(old_scenarios) != set(SCENARIOS) or set(new_scenarios) != set(SCENARIOS):
         raise ValueError("valuation runs must contain BEAR, BASE, and BULL scenarios")
 
@@ -55,7 +56,7 @@ def compare_valuation_run_snapshots(
         old_case = old_scenarios[scenario]
         new_case = new_scenarios[scenario]
         if not isinstance(old_case, Mapping) or not isinstance(new_case, Mapping):
-            raise ValueError(f"{scenario} scenario results must be objects")
+            raise TypeError(f"{scenario} scenario results must be objects")
         scenario_deltas[scenario] = {}
         for metric in COMPARABLE_METRICS:
             if metric not in old_case or metric not in new_case:
@@ -71,7 +72,7 @@ def compare_valuation_run_snapshots(
     old_assumptions = baseline.get("assumptions")
     new_assumptions = comparison.get("assumptions")
     if not isinstance(old_assumptions, Mapping) or not isinstance(new_assumptions, Mapping):
-        raise ValueError("valuation run assumptions must be objects")
+        raise TypeError("valuation run assumptions must be objects")
     keys = sorted(set(old_assumptions) | set(new_assumptions))
     changed = [key for key in keys if old_assumptions.get(key) != new_assumptions.get(key)]
     return {
