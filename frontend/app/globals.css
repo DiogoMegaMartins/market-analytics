@@ -86,3 +86,26 @@ textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; backg
 .valuation-table th, .valuation-table td { border: 1px solid var(--line); padding: 10px; text-align: right; white-space: nowrap; }
 .valuation-table th:first-child { text-align: left; }
 @media (max-width: 700px) { .valuation-scenarios { grid-template-columns: 1fr; } }
+
+/* Portfolio Workspace — Increment 5.18.0 */
+.portfolio-company { align-items: flex-end; }
+.portfolio-select { margin-top: 16px; max-width: 620px; }
+.portfolio-meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 14px; padding: 12px; border: 1px solid var(--line); border-radius: 9px; font-size: 12px; color: var(--muted); }
+.portfolio-meta strong { color: var(--ink); }
+.portfolio-meta span { overflow-wrap: anywhere; }
+.portfolio-create { border-top: 1px solid var(--line); margin-top: 18px; padding-top: 15px; }
+.portfolio-create summary { color: #315c77; font-size: 13px; font-weight: 750; cursor: pointer; }
+.portfolio-create .grid-two { margin-bottom: 14px; }
+.portfolio-notes { margin-top: 14px; }
+.portfolio-refresh { align-items: flex-end; margin: 14px 0; }
+.portfolio-refresh .field { min-width: 220px; }
+.portfolio-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin: 16px 0; }
+.portfolio-kpis article { display: grid; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 13px; min-width: 0; }
+.portfolio-kpis span { color: var(--muted); font-size: 11px; }
+.portfolio-kpis strong { font-size: 17px; overflow-wrap: anywhere; }
+.portfolio-movements { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+.portfolio-movements > div { display: flex; justify-content: space-between; gap: 8px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 11px; }
+.portfolio-movements strong { overflow-wrap: anywhere; text-align: right; }
+.portfolio-id { display: block; max-width: 240px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
+@media (max-width: 850px) { .portfolio-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }.portfolio-movements { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 700px) { .portfolio-company, .portfolio-refresh { align-items: stretch; }.portfolio-refresh .field { min-width: 0; }.portfolio-kpis, .portfolio-movements { grid-template-columns: 1fr; }.portfolio-meta { display: grid; } }
