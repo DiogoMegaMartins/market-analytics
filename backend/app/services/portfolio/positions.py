@@ -5,17 +5,10 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from decimal import Decimal
 from typing import Any
-from uuid import UUID
 
 CASH_SIGNS = {
-    "BUY": -1,
-    "SELL": 1,
-    "DIVIDEND": 1,
-    "DEPOSIT": 1,
-    "WITHDRAWAL": -1,
-    "FEE": -1,
-    "TAX": -1,
-    "INTEREST": 1,
+    "BUY": -1, "SELL": 1, "DIVIDEND": 1, "DEPOSIT": 1,
+    "WITHDRAWAL": -1, "FEE": -1, "TAX": -1, "INTEREST": 1,
 }
 
 
@@ -27,26 +20,22 @@ def _decimal(value: Any) -> Decimal:
 
 
 def _value(transaction: Mapping[str, Any], key: str) -> Any:
-    return transaction[key] if key in transaction else None
+    return transaction.get(key)
 
 
 def build_portfolio_position_snapshot(
-    transactions: Sequence[Mapping[str, Any]],
-    *,
-    as_of: date,
+    transactions: Sequence[Mapping[str, Any]], *, as_of: date,
 ) -> dict[str, Any]:
-    """Derive share quantities and cash balances from immutable ledger entries.
+    """Derive quantities and cash from immutable ledger entries.
 
-    Holdings use trade date. Cash has both trade-date and settlement-date views;
-    a missing settlement date falls back to trade date. No cost-basis or P&L
-    method is inferred.
+    Holdings use trade date. Cash has trade-date and settlement-date views;
+    missing settlement dates fall back to trade date. No cost-basis method
+    is inferred.
     """
     positions: dict[str, dict[str, Decimal]] = defaultdict(
         lambda: {
-            "quantity": Decimal(0),
-            "bought_quantity": Decimal(0),
-            "sold_quantity": Decimal(0),
-            "buy_gross": Decimal(0),
+            "quantity": Decimal(0), "bought_quantity": Decimal(0),
+            "sold_quantity": Decimal(0), "buy_gross": Decimal(0),
             "sell_gross": Decimal(0),
         }
     )
@@ -67,13 +56,12 @@ def build_portfolio_position_snapshot(
         gross = _decimal(_value(transaction, "gross_amount"))
         fees = _decimal(_value(transaction, "fees") or 0)
         taxes = _decimal(_value(transaction, "taxes") or 0)
-        sign = CASH_SIGNS[transaction_type]
         if transaction_type == "BUY":
             cash_effect = -(gross + fees + taxes)
         elif transaction_type in {"SELL", "DIVIDEND", "INTEREST"}:
             cash_effect = gross - fees - taxes
         elif transaction_type in {"DEPOSIT", "WITHDRAWAL"}:
-            cash_effect = gross * sign
+            cash_effect = gross * CASH_SIGNS[transaction_type]
         else:
             cash_effect = -(gross + fees + taxes)
 
@@ -111,8 +99,7 @@ def build_portfolio_position_snapshot(
         if negative:
             negative_positions.append(asset_id)
         position_rows.append({
-            "asset_id": asset_id,
-            "quantity": str(item["quantity"]),
+            "asset_id": asset_id, "quantity": str(item["quantity"]),
             "bought_quantity": str(item["bought_quantity"]),
             "sold_quantity": str(item["sold_quantity"]),
             "buy_gross": str(item["buy_gross"]),
@@ -130,9 +117,7 @@ def build_portfolio_position_snapshot(
             "unsettled_net_amount": str(trade_cash - settled_cash),
             "inflows": str(inflows),
             "outflows": str(outflows),
-            "net_movements_by_type": {
-                key: str(movements[key]) for key in sorted(movements)
-            },
+            "net_movements_by_type": {key: str(movements[key]) for key in sorted(movements)},
         },
         "reconciliation": {
             "negative_position_asset_ids": negative_positions,

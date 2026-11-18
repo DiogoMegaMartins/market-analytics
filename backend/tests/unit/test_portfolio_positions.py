@@ -8,14 +8,10 @@ from app.services.portfolio.positions import build_portfolio_position_snapshot
 def _tx(kind, *, trade=date(2026, 1, 5), settlement=None, asset=None,
         quantity=None, gross="100", fees="0", taxes="0"):
     return {
-        "transaction_type": kind,
-        "trade_date": trade,
-        "settlement_date": settlement,
-        "asset_id": asset,
-        "quantity": quantity,
-        "gross_amount": gross,
-        "fees": fees,
-        "taxes": taxes,
+        "transaction_type": kind, "trade_date": trade,
+        "settlement_date": settlement, "asset_id": asset,
+        "quantity": quantity, "gross_amount": gross,
+        "fees": fees, "taxes": taxes,
     }
 
 

@@ -12,7 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import require_company_access
 from app.models.identity import Asset, Company
 from app.models.portfolio import Portfolio, PortfolioTransaction
-from app.platform.database.session import get_db_session\nfrom app.services.portfolio.positions import build_portfolio_position_snapshot
+from app.platform.database.session import get_db_session
+from app.services.portfolio.positions import build_portfolio_position_snapshot
 
 router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_company_access)])
 
@@ -183,8 +184,12 @@ async def create_portfolio_transaction(
     currency = payload.currency or portfolio.base_currency
     if currency != portfolio.base_currency:
         raise HTTPException(status_code=422, detail="Transaction currency must match portfolio base currency; FX support is not yet enabled")
-    if payload.asset_id is not None and await session.get(Asset, payload.asset_id) is None:
-        raise HTTPException(status_code=404, detail="Asset not found")
+    if payload.asset_id is not None:
+        asset = await session.scalar(select(Asset).where(
+            Asset.id == payload.asset_id, Asset.company_id == company_id
+        ))
+        if asset is None:
+            raise HTTPException(status_code=404, detail="Asset not found")
 
     existing = await session.scalar(select(PortfolioTransaction).where(
         PortfolioTransaction.portfolio_id == portfolio_id,
@@ -243,7 +248,6 @@ async def list_portfolio_transactions(
         "portfolio_id": str(portfolio_id), "limit": limit, "offset": offset,
         "transactions": [_transaction_payload(item) for item in records],
     }
-
 
 
 @router.get("/portfolio/companies/{company_id}/portfolios/{portfolio_id}/positions")

@@ -2,9 +2,9 @@
 
 Increment 5.16.0 implements tenant-scoped portfolio containers and an append-only transaction ledger.
 
-Increment 5.17.0 adds a deterministic, read-only snapshot:
+Increment 5.17.0 adds deterministic, read-only snapshots:
 - Net asset quantities derived from BUY and SELL entries by trade date.
-- Trade-date cash balance and settlement-date cash balance, with an explicit trade-date fallback when settlement date is absent.
+- Trade-date and settlement-date cash balances, with trade-date fallback if settlement date is absent.
 - Cash movement totals by transaction type, including fees and taxes.
 - Negative holdings are preserved and flagged for analyst review; no automatic correction is made.
 - No lot accounting, cost basis, realized/unrealized P&L, FX, corporate actions, or broker/bank statement reconciliation is inferred.
