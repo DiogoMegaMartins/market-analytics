@@ -51,7 +51,7 @@ async def test_portfolio_valuation_is_idempotent_tenant_scoped_and_immutable():
             created = await create_portfolio_valuation(company.id, portfolio.id, data, request, session)
             replay = await create_portfolio_valuation(company.id, portfolio.id, data, request, session)
             assert created["id"] == replay["id"] and replay["idempotent_replay"]
-            assert created["total_value"] == "1500.50"
+            assert Decimal(created["total_value"]) == Decimal("1500.50")
 
             changed = PortfolioValuationCreate.model_validate({
                 **data.model_dump(mode="json"), "market_value": "1300", "cash_value": "250",
