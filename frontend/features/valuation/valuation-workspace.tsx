@@ -28,6 +28,7 @@ type ValuationComparison = {
   changed_assumption_paths: string[];
   assumption_differences: Array<{
     path: string;
+    json_pointer: string;
     baseline: unknown;
     comparison: unknown;
     baseline_present: boolean;
@@ -232,10 +233,11 @@ export default function ValuationWorkspace() {
           <h3 className="valuation-subtitle">Pressupostos alterados</h3>
           {comparison.assumption_differences.length ? (
             <div className="table-scroll"><table className="valuation-table">
-              <thead><tr><th>Caminho do pressuposto</th><th>Referência</th><th>Comparação</th></tr></thead>
+              <thead><tr><th>Caminho JSON Pointer</th><th>Caminho legível</th><th>Referência</th><th>Comparação</th></tr></thead>
               <tbody>{comparison.assumption_differences.map(item => (
                 <tr key={item.path}>
-                  <th><code>{item.path}</code></th>
+                  <th><code>{item.json_pointer || item.path}</code></th>
+                  <td><code>{item.path}</code></td>
                   <td>{item.baseline_present ? <code>{JSON.stringify(item.baseline)}</code> : <span className="muted">Não existia</span>}</td>
                   <td>{item.comparison_present ? <code>{JSON.stringify(item.comparison)}</code> : <span className="muted">Removido</span>}</td>
                 </tr>
