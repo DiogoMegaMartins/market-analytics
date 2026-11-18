@@ -7,6 +7,7 @@ export default function HomePage() {
       <nav style={{ display: "flex", flexWrap: "wrap", gap: 20, marginTop: 22 }}>
         <a href="/thesis" style={{ color: "#185b86", fontWeight: 700 }}>Abrir Thesis Intelligence →</a>
         <a href="/valuation" style={{ color: "#185b86", fontWeight: 700 }}>Abrir Valuation Workspace →</a>
+        <a href="/portfolio" style={{ color: "#185b86", fontWeight: 700 }}>Abrir Portfolio Workspace →</a>
         <a href="/research/evidence" style={{ color: "#185b86", fontWeight: 700 }}>Abrir Evidence Review Workspace →</a>
       </nav>
     </main>
