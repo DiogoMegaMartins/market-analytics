@@ -32,7 +32,7 @@ def test_comparison_reports_scenario_deltas_and_changed_assumptions():
     assert result["changed_assumption_fields"] == ["revenue"]
     assert result["changed_assumption_paths"] == ["revenue"]
     assert result["assumption_differences"] == [{
-        "path": "revenue", "baseline": "1000", "comparison": "1200",
+        "path": "revenue", "json_pointer": "/revenue", "baseline": "1000", "comparison": "1200",
         "baseline_present": True, "comparison_present": True,
     }]
     delta = result["scenarios"]["BASE"]["enterprise_value"]
@@ -96,6 +96,7 @@ def test_reports_nested_scenario_assumption_paths_and_values():
     assert result["assumption_differences"] == [
         {
             "path": "scenarios.BASE.0.ebit_margin",
+            "json_pointer": "/scenarios/BASE/0/ebit_margin",
             "baseline": "0.20",
             "comparison": "0.22",
             "baseline_present": True,
@@ -103,6 +104,7 @@ def test_reports_nested_scenario_assumption_paths_and_values():
         },
         {
             "path": "scenarios.BASE.0.revenue",
+            "json_pointer": "/scenarios/BASE/0/revenue",
             "baseline": "1000",
             "comparison": "1250",
             "baseline_present": True,
@@ -124,3 +126,14 @@ def test_reports_added_removed_and_null_assumption_values():
     assert by_path["revenue"]["comparison_present"] is False
     assert by_path["scenarios.BASE.0.new_driver"]["baseline_present"] is False
     assert by_path["scenarios.BASE.0.new_driver"]["comparison"] == "5"
+
+
+def test_json_pointer_escapes_special_object_keys_without_collisions():
+    baseline, comparison = _run("baseline"), _run("comparison")
+    baseline["assumptions"] = {"a.b": {"c/d": "old"}, "a": {"b.c/d": "same"}, "tilde~key": "old"}
+    comparison["assumptions"] = {"a.b": {"c/d": "new"}, "a": {"b.c/d": "changed"}, "tilde~key": "new"}
+    result = compare_valuation_run_snapshots(baseline, comparison)
+    by_pointer = {item["json_pointer"]: item for item in result["assumption_differences"]}
+    assert set(by_pointer) == {"/a.b/c~1d", "/a/b.c~1d", "/tilde~0key"}
+    assert by_pointer["/a.b/c~1d"]["path"] == "a.b.c/d"
+    assert by_pointer["/a.b/c~1d"]["baseline"] == "old"
