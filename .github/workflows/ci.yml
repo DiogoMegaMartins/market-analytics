@@ -75,7 +75,7 @@ jobs:
         working-directory: backend
         run: |
           alembic current
-          test "$(alembic current | grep -o '0022_portfolio_ledger')" = "0022_portfolio_ledger"
+          test "$(alembic current | grep -o '0023_portfolio_valuations')" = "0022_portfolio_ledger"
       - name: Verify migration downgrade and upgrade
         working-directory: backend
         run: |
