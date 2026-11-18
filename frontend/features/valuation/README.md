@@ -8,6 +8,6 @@ The Valuation Workspace is available at `/valuation`.
 - Loads and displays persisted valuation history.
 - Opens immutable valuation run details from history, showing metadata, original assumptions and the complete persisted result without recalculation.
 - Compares two persisted valuation runs directly from the workspace, showing absolute and percentage deltas for Bear/Base/Bull metrics.
-- Lists assumption changes down to nested scenario and forecast-period paths, including previous/new values and whether a value was added or removed.
+- Lists assumption changes down to nested scenario and forecast-period paths, showing canonical RFC 6901 JSON Pointers (including escaped `/` and `~` key characters) alongside the legacy dotted path and previous/new values and whether a value was added or removed.
 - The comparison is read-only, does not recalculate snapshots and requires analyst review.
 - Does not infer assumptions, fetch market prices or issue investment recommendations.

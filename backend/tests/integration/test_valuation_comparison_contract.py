@@ -119,6 +119,7 @@ async def test_comparison_endpoint_is_read_only_and_hides_foreign_runs():
             ]
             assert data["assumption_differences"][1] == {
                 "path": "scenarios.BASE.0.revenue",
+                "json_pointer": "/scenarios/BASE/0/revenue",
                 "baseline": "1000",
                 "comparison": "1200",
                 "baseline_present": True,
