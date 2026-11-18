@@ -14,6 +14,7 @@ type ValuationResult = {
   limitations: string[];
 };
 type ValuationRow = { id: string; created_at: string; valuation_version: string; method: string; base_year: number; currency: string; result: ValuationResult };
+type ValuationRunDetail = ValuationRow & { company_id: string; created_by_user_id: string; assumptions: Record<string, unknown> };
 type ComparisonMetric = { baseline: string; comparison: string; absolute: string; percentage: string | null };
 type ValuationComparison = {
   comparison_version: string;
@@ -83,7 +84,7 @@ export default function ValuationWorkspace() {
   const [companyId, setCompanyId] = useState("");
   const [payload, setPayload] = useState("");
   const [history, setHistory] = useState<ValuationRow[]>([]);
-  const [selected, setSelected] = useState<ValuationRow | null>(null);
+  const [selected, setSelected] = useState<ValuationRunDetail | null>(null);
   const [baselineId, setBaselineId] = useState("");
   const [comparisonId, setComparisonId] = useState("");
   const [comparison, setComparison] = useState<ValuationComparison | null>(null);
@@ -101,6 +102,15 @@ export default function ValuationWorkspace() {
     setHistory(data.valuations);
     setBaselineId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[0]?.id || "");
     setComparisonId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[1]?.id || "");
+  }
+
+  async function loadRunDetail(runId: string) {
+    if (!companyId.trim()) throw new Error("Indica primeiro o ID da empresa.");
+    const detail = await api<ValuationRunDetail>(
+      `/valuation/companies/${companyId.trim()}/runs/${runId}`,
+    );
+    setSelected(detail);
+    setNotice("Snapshot original carregado. Os pressupostos e resultados são apresentados sem recálculo.");
   }
 
   async function compareRuns() {
@@ -122,9 +132,9 @@ export default function ValuationWorkspace() {
       `/valuation/companies/${companyId.trim()}/dcf`,
       { method: "POST", body: JSON.stringify(assumptions) },
     );
-    setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });
     setComparison(null);
     await loadHistory();
+    await loadRunDetail(created.id);
     setNotice("Avaliação calculada e guardada no histórico.");
   }
 
@@ -152,6 +162,26 @@ export default function ValuationWorkspace() {
         {error && <div className="notice error" role="alert">{error}</div>}
         {notice && <div className="notice success" role="status">{notice}</div>}
       </section>
+
+      {selected && <section className="panel detail-panel">
+        <div className="panel-title"><div><h2>Detalhe da avaliação persistida</h2><p>Snapshot original recuperado pela API; não é recalculado.</p></div><span className="count-pill">Read-only</span></div>
+        <div className="detail-grid">
+          <div><span className="detail-label">ID da avaliação</span><strong>{selected.id}</strong></div>
+          <div><span className="detail-label">Criada em</span><strong>{new Date(selected.created_at).toLocaleString("pt-PT")}</strong></div>
+          <div><span className="detail-label">Versão / método</span><strong>{selected.valuation_version} · {selected.method}</strong></div>
+          <div><span className="detail-label">Ano-base / moeda</span><strong>{selected.base_year} · {selected.currency}</strong></div>
+          <div><span className="detail-label">Empresa</span><strong>{selected.company_id}</strong></div>
+          <div><span className="detail-label">Criada pelo utilizador</span><strong>{selected.created_by_user_id}</strong></div>
+        </div>
+        <details className="context-details">
+          <summary>Pressupostos originais (JSON imutável)</summary>
+          <pre>{JSON.stringify(selected.assumptions, null, 2)}</pre>
+        </details>
+        <details className="context-details" style={{ marginTop: 12 }}>
+          <summary>Resultado integral persistido (JSON)</summary>
+          <pre>{JSON.stringify(selected.result, null, 2)}</pre>
+        </details>
+      </section>}
 
       {result && <section className="panel">
         <div className="panel-title"><div><h2>Resultado da avaliação</h2><p>{result.valuation_version} · ano-base {result.base_year} · {result.currency}</p></div><span className="count-pill">Revisão do analista obrigatória</span></div>
@@ -199,7 +229,7 @@ export default function ValuationWorkspace() {
 
       <section className="panel">
         <div className="panel-title"><div><h2>Histórico</h2><p>Últimas avaliações guardadas para a empresa indicada.</p></div></div>
-        {history.length === 0 ? <p className="empty-state">Ainda não foram carregadas avaliações.</p> : <div className="candidate-list">{history.map(item => <button className="candidate-row" key={item.id} onClick={() => setSelected(item)}><span className="row-main"><strong>{item.method} · {item.base_year}</strong><span>{item.valuation_version} · {new Date(item.created_at).toLocaleString("pt-PT")}</span></span><span>{money(item.result.scenarios.BASE.value_per_share, item.currency)}</span></button>)}</div>}
+        {history.length === 0 ? <p className="empty-state">Ainda não foram carregadas avaliações.</p> : <div className="candidate-list">{history.map(item => <button className={`candidate-row${selected?.id === item.id ? " active" : ""}`} key={item.id} onClick={() => void run(() => loadRunDetail(item.id))}><span className="row-main"><strong>{item.method} · {item.base_year}</strong><span>{item.valuation_version} · {new Date(item.created_at).toLocaleString("pt-PT")}</span></span><span>{money(item.result.scenarios.BASE.value_per_share, item.currency)}</span></button>)}</div>}
       </section>
     </main>
   );
