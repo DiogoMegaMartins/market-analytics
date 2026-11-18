@@ -11,6 +11,7 @@ from app.api.v1.dependencies import require_company_access
 from app.models.financial_data import ValuationRun
 from app.models.identity import Company
 from app.platform.database.session import get_db_session
+from app.services.valuation.comparison import compare_valuation_run_snapshots
 from app.services.valuation.dcf import calculate_fcff_dcf
 
 router = APIRouter(tags=["valuation"], dependencies=[Depends(require_company_access)])
@@ -139,3 +140,41 @@ async def get_company_valuation_run(
         "assumptions": run.assumptions,
         "result": run.result,
     }
+
+
+@router.get(
+    "/valuation/companies/{company_id}/runs/{baseline_run_id}/compare/{comparison_run_id}"
+)
+async def compare_company_valuation_runs(
+    company_id: UUID,
+    baseline_run_id: UUID,
+    comparison_run_id: UUID,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Compare two immutable valuation snapshots within the same company."""
+    if baseline_run_id == comparison_run_id:
+        raise HTTPException(status_code=422, detail="Select two different valuation runs")
+    runs = list((await session.scalars(
+        select(ValuationRun).where(
+            ValuationRun.company_id == company_id,
+            ValuationRun.id.in_([baseline_run_id, comparison_run_id]),
+        )
+    )).all())
+    by_id = {run.id: run for run in runs}
+    baseline, comparison = by_id.get(baseline_run_id), by_id.get(comparison_run_id)
+    if baseline is None or comparison is None:
+        raise HTTPException(status_code=404, detail="Valuation run not found")
+    try:
+        result = compare_valuation_run_snapshots(
+            {"id": baseline.id, "valuation_version": baseline.valuation_version,
+             "method": baseline.method, "base_year": baseline.base_year,
+             "currency": baseline.currency, "assumptions": baseline.assumptions,
+             "result": baseline.result},
+            {"id": comparison.id, "valuation_version": comparison.valuation_version,
+             "method": comparison.method, "base_year": comparison.base_year,
+             "currency": comparison.currency, "assumptions": comparison.assumptions,
+             "result": comparison.result},
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"company_id": str(company_id), **result}
