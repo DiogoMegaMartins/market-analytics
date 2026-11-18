@@ -32,19 +32,26 @@ def _delta(before: Decimal, after: Decimal) -> dict[str, str | None]:
     }
 
 
-def _flatten_assumptions(value: Any, prefix: str = "") -> dict[str, Any]:
-    """Flatten nested JSON objects and arrays into stable dotted paths."""
-    flattened: dict[str, Any] = {}
+def _flatten_assumptions(
+    value: Any,
+    segments: tuple[str, ...] = (),
+) -> dict[str, tuple[str, Any]]:
+    """Flatten JSON leaves by RFC 6901 pointer and retain the legacy dotted path."""
+    flattened: dict[str, tuple[str, Any]] = {}
     if isinstance(value, Mapping) and value:
         for key in sorted(value, key=str):
-            path = f"{prefix}.{key}" if prefix else str(key)
-            flattened.update(_flatten_assumptions(value[key], path))
+            segment = str(key)
+            flattened.update(_flatten_assumptions(value[key], (*segments, segment)))
     elif isinstance(value, list) and value:
         for index, item in enumerate(value):
-            path = f"{prefix}.{index}" if prefix else str(index)
-            flattened.update(_flatten_assumptions(item, path))
+            flattened.update(_flatten_assumptions(item, (*segments, str(index))))
     else:
-        flattened[prefix or "$"] = value
+        pointer = "".join(
+            "/" + segment.replace("~", "~0").replace("/", "~1")
+            for segment in segments
+        )
+        legacy_path = ".".join(segments) if segments else "$"
+        flattened[pointer] = (legacy_path, value)
     return flattened
 
 
@@ -96,12 +103,19 @@ def compare_valuation_run_snapshots(
     new_flat = _flatten_assumptions(new_assumptions)
     missing = object()
     assumption_differences = []
-    for path in sorted(set(old_flat) | set(new_flat)):
-        old_value = old_flat.get(path, missing)
-        new_value = new_flat.get(path, missing)
+    for pointer in sorted(set(old_flat) | set(new_flat)):
+        old_entry = old_flat.get(pointer, missing)
+        new_entry = new_flat.get(pointer, missing)
+        old_value = old_entry[1] if old_entry is not missing else missing
+        new_value = new_entry[1] if new_entry is not missing else missing
         if old_value != new_value:
+            legacy_path = (
+                old_entry[0] if old_entry is not missing
+                else new_entry[0]
+            )
             assumption_differences.append({
-                "path": path,
+                "path": legacy_path,
+                "json_pointer": pointer,
                 "baseline": None if old_value is missing else old_value,
                 "comparison": None if new_value is missing else new_value,
                 "baseline_present": old_value is not missing,
