@@ -125,7 +125,7 @@ export default function PortfolioWorkspace() {
     </section>
     {error && <div className="notice error" role="alert">{error}</div>}{notice && <div className="notice success" role="status">{notice}</div>}
     {selected && <>
-      <PortfolioPerformancePanel companyId={companyId} portfolioId={portfolioId} currency={selected.base_currency} />
+      <PortfolioPerformancePanel companyId={companyId} portfolioId={portfolioId} currency={selected.base_currency} request={api} />
       <section className="panel">
         <div className="panel-title"><div><h2>2. Registar movimento</h2><p>O movimento é imutável após registo. A chave de idempotência evita duplicações em reenvios.</p></div><span className="count-pill">Append-only</span></div>
         <div className="grid-two">
