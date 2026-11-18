@@ -41,8 +41,8 @@ class PortfolioTransactionCreate(BaseModel):
     unit_price: Decimal | None = None
     gross_amount: Decimal
     currency: str | None = Field(default=None, pattern="^[A-Z]{3}$")
-    fees: Decimal = Decimal("0")
-    taxes: Decimal = Decimal("0")
+    fees: Decimal = 0
+    taxes: Decimal = 0
     idempotency_key: str = Field(min_length=1, max_length=128)
     external_reference: str | None = Field(default=None, max_length=160)
     notes: str | None = Field(default=None, max_length=4000)
