@@ -21,9 +21,6 @@ jobs:
       - name: Verify Ruff installation
         working-directory: backend
         run: python -m ruff --version
-      - name: Diagnose valuation test import ordering
-        working-directory: backend
-        run: python -m ruff check --select I --diff tests/integration/test_valuation_persistence_contract.py || true
       - name: Check lint and import ordering
         working-directory: backend
         run: python -m ruff check --output-format=github app tests
@@ -75,14 +72,14 @@ jobs:
         working-directory: backend
         run: |
           alembic current
-          test "$(alembic current | grep -o '0022_portfolio_ledger')" = "0022_portfolio_ledger"
+          test "$(alembic current | grep -o '0023_portfolio_valuations')" = "0023_portfolio_valuations"
       - name: Verify migration downgrade and upgrade
         working-directory: backend
         run: |
           alembic downgrade 0018_point_in_time_contract
           test "$(alembic current | grep -o '0018_point_in_time_contract')" = "0018_point_in_time_contract"
           alembic upgrade head
-          test "$(alembic current | grep -o '0022_portfolio_ledger')" = "0022_portfolio_ledger"
+          test "$(alembic current | grep -o '0023_portfolio_valuations')" = "0023_portfolio_valuations"
       - name: Run backend and PostgreSQL tests
         working-directory: backend
         run: pytest -q --junitxml=pytest-junit.xml
@@ -158,7 +155,7 @@ jobs:
         shell: bash
         run: |
           alembic current
-          alembic current | grep -q "0022_portfolio_ledger"
+          alembic current | grep -q "0023_portfolio_valuations"
       - name: Run PostgreSQL integration suite
         working-directory: backend
         run: pytest -q --junitxml=pytest-neon-integration.xml

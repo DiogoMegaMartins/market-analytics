@@ -37,12 +37,14 @@ def test_alembic_has_single_increment_4_1_head() -> None:
     assert metadata["0021_valuation_run_immutability"] == "0020_valuation_runs"
     assert "0022_portfolio_ledger" in metadata
     assert metadata["0022_portfolio_ledger"] == "0021_valuation_run_immutability"
+    assert "0023_portfolio_valuations" in metadata
+    assert metadata["0023_portfolio_valuations"] == "0022_portfolio_ledger"
     assert len(metadata) == len(set(metadata))
     assert all(len(revision) <= 32 for revision in metadata)
     assert all(parent is None or parent in metadata for parent in metadata.values())
     parents = {parent for parent in metadata.values() if parent is not None}
     heads = set(metadata) - parents
-    assert heads == {"0022_portfolio_ledger"}
+    assert heads == {"0023_portfolio_valuations"}
 
 
 def test_thesis_history_triggers_follow_table_creation() -> None:
