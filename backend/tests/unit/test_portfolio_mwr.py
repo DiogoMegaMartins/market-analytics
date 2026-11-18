@@ -60,7 +60,7 @@ def test_xirr_rejects_ambiguous_multiple_roots():
 
 
 def test_xirr_rejects_cash_flows_without_a_root():
-    with pytest.raises(ValueError, match="no XIRR root"):
+    with pytest.raises(ValueError, match="at least one positive"):
         calculate_money_weighted_return(
             [_valuation("2025-01-01", 100), _valuation("2026-01-01", 50)],
             [{"flow_date": "2026-01-01", "flow_type": "DEPOSIT", "amount": "1000"}],
