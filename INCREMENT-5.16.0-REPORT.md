@@ -25,4 +25,4 @@ Introduzir o primeiro alicerce persistente de Portfolio & Backtesting: carteiras
 
 - Rotas usam `require_company_access` ao nível do router e confirmam a relação carteira/empresa em cada operação.
 - Sem operações em Neon ou produção. Migração apenas exercitada pelo CI PostgreSQL isolado.
-- Não foi feito merge; aguarda revisão e decisão do utilizador.
+- O PR #16 foi integrado na `main` em 2026-11-18 (merge commit `4b4167b715f07a26f22492877249c6ae8d3ba447`). O CI pós-merge na `main` concluiu com sucesso; o workflow Neon permaneceu ignorado por ser manual.

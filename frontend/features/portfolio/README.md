@@ -1,5 +1,8 @@
 # Portfolio
 
-Backend API foundation delivered in Increment 5.16.0: company-scoped portfolio containers and append-only transaction ledger. This frontend feature remains a placeholder; a transaction-entry workspace will follow after API contract review.
+Backend API foundation delivered in Increment 5.16.0: company-scoped portfolio containers and append-only transaction ledger.
 
-See the backend API routes under `/api/v1/portfolio`. Positions, performance, FX and backtesting are not part of this increment.
+Increment 5.17.0 exposes a read-only positions and ledger-cash snapshot through:
+`GET /api/v1/portfolio/companies/{company_id}/portfolios/{portfolio_id}/positions?as_of=YYYY-MM-DD`.
+
+A frontend transaction-entry and positions workspace remains pending. Positions are derived from BUY/SELL quantities; cash is ledger-derived and is not a bank/broker statement reconciliation. Cost basis, performance, FX and backtesting are not included.

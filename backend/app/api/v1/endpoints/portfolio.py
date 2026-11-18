@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.dependencies import require_company_access
 from app.models.identity import Asset, Company
 from app.models.portfolio import Portfolio, PortfolioTransaction
-from app.platform.database.session import get_db_session
+from app.platform.database.session import get_db_session\nfrom app.services.portfolio.positions import build_portfolio_position_snapshot
 
 router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_company_access)])
 
@@ -242,4 +242,55 @@ async def list_portfolio_transactions(
     return {
         "portfolio_id": str(portfolio_id), "limit": limit, "offset": offset,
         "transactions": [_transaction_payload(item) for item in records],
+    }
+
+
+
+@router.get("/portfolio/companies/{company_id}/portfolios/{portfolio_id}/positions")
+async def get_portfolio_positions(
+    company_id: UUID,
+    portfolio_id: UUID,
+    as_of: date | None = Query(default=None),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return a reproducible, read-only position and ledger-cash snapshot."""
+    portfolio = await _portfolio_for_company(company_id, portfolio_id, session)
+    cutoff = as_of or date.today()
+    records = list((await session.scalars(select(PortfolioTransaction).where(
+        PortfolioTransaction.portfolio_id == portfolio_id,
+        PortfolioTransaction.trade_date <= cutoff,
+    ).order_by(
+        PortfolioTransaction.trade_date,
+        PortfolioTransaction.recorded_at,
+        PortfolioTransaction.id,
+    ))).all())
+    snapshot = build_portfolio_position_snapshot(
+        [{
+            "transaction_type": item.transaction_type,
+            "trade_date": item.trade_date,
+            "settlement_date": item.settlement_date,
+            "asset_id": item.asset_id,
+            "quantity": item.quantity,
+            "gross_amount": item.gross_amount,
+            "fees": item.fees,
+            "taxes": item.taxes,
+        } for item in records],
+        as_of=cutoff,
+    )
+    asset_ids = [UUID(item["asset_id"]) for item in snapshot["positions"]]
+    assets = {}
+    if asset_ids:
+        assets = {
+            str(asset.id): asset.name
+            for asset in (await session.scalars(select(Asset).where(
+                Asset.company_id == company_id, Asset.id.in_(asset_ids)
+            ))).all()
+        }
+    for position in snapshot["positions"]:
+        position["asset_name"] = assets.get(position["asset_id"])
+    return {
+        "portfolio_id": str(portfolio_id),
+        "company_id": str(company_id),
+        "base_currency": portfolio.base_currency,
+        **snapshot,
     }
