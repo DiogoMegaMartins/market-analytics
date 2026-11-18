@@ -26,3 +26,10 @@ A validação Python do backend permanece independente do frontend. O typecheck/
 - Compara a versão atual com uma versão anterior, campo a campo, sem inferir impacto qualitativo.
 - Mostra histórico de versões e assinala uma decisão REVISE ainda associada à versão atual.
 - As evidências permanecem ligadas à versão original e têm de ser novamente associadas quando aplicável.
+
+
+## Incremento 5.15.0 — Proveniência e revisão dos alertas
+- Cada alerta apresenta metadados da execução persistida de métricas que o originou: UUID, ano fiscal, instante de criação, versão do motor, política de resolução, data de conhecimento e estado.
+- O endpoint de alertas devolve a proveniência em lote, sem consultas por alerta para obter as execuções.
+- O workspace apresenta a execução de origem, mantém os detalhes determinísticos recolhidos e expõe o histórico auditável de transições de estado com autor, instante e comentário.
+- As transições continuam sujeitas às permissões e regras do backend; a interface não altera automaticamente a tese.
