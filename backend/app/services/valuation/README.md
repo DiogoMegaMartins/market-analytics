@@ -14,7 +14,6 @@ The `app/services/valuation/dcf.py` module provides a pure deterministic FCFF di
 
 Banks, insurers, REITs and other specialist sectors must not use this FCFF implementation without a sector-appropriate valuation method. Every output requires analyst review.
 
-
 ## Valuation run comparison
 
-The pure `app/services/valuation/comparison.py` service compares two persisted immutable snapshots without recalculating either valuation. It requires matching method, engine version, base year and currency, reports Bear/Base/Bull deltas for enterprise value, equity value, value per share and present-value components, and lists changed top-level assumption fields. Percentage deltas are null for a zero baseline. The company-scoped API never exposes a run belonging to another company. Comparisons are review aids, not investment recommendations.
+The pure `app/services/valuation/comparison.py` service compares two persisted immutable snapshots without recalculating either valuation. It requires matching method, engine version, base year and currency, reports Bear/Base/Bull deltas for enterprise value, equity value, value per share and present-value components, and lists changed top-level assumption fields. It also recursively reports each changed nested assumption path, its previous and new JSON values, and explicit presence flags to distinguish additions/removals from JSON null. Percentage deltas are null for a zero baseline. The company-scoped API never exposes a run belonging to another company. Comparisons are review aids, not investment recommendations.
