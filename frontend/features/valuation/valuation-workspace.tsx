@@ -14,6 +14,28 @@ type ValuationResult = {
   limitations: string[];
 };
 type ValuationRow = { id: string; created_at: string; valuation_version: string; method: string; base_year: number; currency: string; result: ValuationResult };
+type ComparisonMetric = { baseline: string; comparison: string; absolute: string; percentage: string | null };
+type ValuationComparison = {
+  comparison_version: string;
+  method: string;
+  valuation_version: string;
+  base_year: number;
+  currency: string;
+  baseline_run_id: string;
+  comparison_run_id: string;
+  changed_assumption_fields: string[];
+  scenarios: Record<"BEAR" | "BASE" | "BULL", Record<string, ComparisonMetric>>;
+  analyst_review_required: boolean;
+  investment_recommendation: null;
+  limitations: string[];
+};
+const COMPARISON_METRICS: Array<[string, string]> = [
+  ["enterprise_value", "Enterprise value"],
+  ["equity_value", "Equity value"],
+  ["value_per_share", "Valor por ação"],
+  ["present_value_explicit_fcff", "Valor presente dos FCFF explícitos"],
+  ["present_value_terminal_value", "Valor presente do valor terminal"],
+];
 const API = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1").replace(/\/$/, "");
 let refreshFlight: Promise<boolean> | null = null;
 
@@ -62,6 +84,9 @@ export default function ValuationWorkspace() {
   const [payload, setPayload] = useState("");
   const [history, setHistory] = useState<ValuationRow[]>([]);
   const [selected, setSelected] = useState<ValuationRow | null>(null);
+  const [baselineId, setBaselineId] = useState("");
+  const [comparisonId, setComparisonId] = useState("");
+  const [comparison, setComparison] = useState<ValuationComparison | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -74,6 +99,18 @@ export default function ValuationWorkspace() {
     if (!companyId.trim()) throw new Error("Indica primeiro o ID da empresa.");
     const data = await api<{ valuations: ValuationRow[] }>(`/valuation/companies/${companyId.trim()}/history`);
     setHistory(data.valuations);
+    setBaselineId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[0]?.id || "");
+    setComparisonId(current => current && data.valuations.some(row => row.id === current) ? current : data.valuations[1]?.id || "");
+  }
+
+  async function compareRuns() {
+    if (!companyId.trim()) throw new Error("Indica primeiro o ID da empresa.");
+    if (!baselineId || !comparisonId) throw new Error("Seleciona duas avaliações do histórico.");
+    if (baselineId === comparisonId) throw new Error("A avaliação de referência e a de comparação têm de ser diferentes.");
+    const data = await api<ValuationComparison>(
+      `/valuation/companies/${companyId.trim()}/runs/${baselineId}/compare/${comparisonId}`,
+    );
+    setComparison(data);
   }
 
   async function calculate() {
@@ -85,7 +122,7 @@ export default function ValuationWorkspace() {
       `/valuation/companies/${companyId.trim()}/dcf`,
       { method: "POST", body: JSON.stringify(assumptions) },
     );
-    setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });
+    setSelected({ ...created, method: "FCFF_DCF", base_year: created.result.base_year, currency: created.result.currency });\n    setComparison(null);
     await loadHistory();
     setNotice("Avaliação calculada e guardada no histórico.");
   }
