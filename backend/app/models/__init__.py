@@ -32,6 +32,7 @@ from app.models.financial_data import (
     ValuationRun,
 )
 from app.models.identity import Asset, AssetIdentifier, Company
+from app.models.portfolio import Portfolio, PortfolioTransaction
 from app.models.thesis import InvestmentThesis, InvestmentThesisEvent, InvestmentThesisVersion
 from app.models.thesis_alert import InvestmentThesisAlert, InvestmentThesisAlertEvent
 from app.models.thesis_evidence import InvestmentThesisEvidenceLink
@@ -67,6 +68,8 @@ __all__ = [
     "InvestmentThesisVersion",
     "LoginRateLimit",
     "NormalizedFinancialFact",
+    "Portfolio",
+    "PortfolioTransaction",
     "SECProviderCache",
     "SECRawCompanyFacts",
     "User",

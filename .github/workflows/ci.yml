@@ -75,14 +75,14 @@ jobs:
         working-directory: backend
         run: |
           alembic current
-          test "$(alembic current | grep -o '0021_valuation_run_immutability')" = "0021_valuation_run_immutability"
+          test "$(alembic current | grep -o '0022_portfolio_ledger')" = "0022_portfolio_ledger"
       - name: Verify migration downgrade and upgrade
         working-directory: backend
         run: |
           alembic downgrade 0018_point_in_time_contract
           test "$(alembic current | grep -o '0018_point_in_time_contract')" = "0018_point_in_time_contract"
           alembic upgrade head
-          test "$(alembic current | grep -o '0021_valuation_run_immutability')" = "0021_valuation_run_immutability"
+          test "$(alembic current | grep -o '0022_portfolio_ledger')" = "0022_portfolio_ledger"
       - name: Run backend and PostgreSQL tests
         working-directory: backend
         run: pytest -q --junitxml=pytest-junit.xml
@@ -158,7 +158,7 @@ jobs:
         shell: bash
         run: |
           alembic current
-          alembic current | grep -q "0021_valuation_run_immutability"
+          alembic current | grep -q "0022_portfolio_ledger"
       - name: Run PostgreSQL integration suite
         working-directory: backend
         run: pytest -q --junitxml=pytest-neon-integration.xml
