@@ -3,7 +3,13 @@ from decimal import Decimal, InvalidOperation
 from typing import Any, Mapping
 
 SCENARIOS = ("BEAR", "BASE", "BULL")
-COMPARABLE_METRICS = ("enterprise_value", "equity_value", "value_per_share", "present_value_explicit_fcff", "present_value_terminal_value")
+COMPARABLE_METRICS = (
+    "enterprise_value",
+    "equity_value",
+    "value_per_share",
+    "present_value_explicit_fcff",
+    "present_value_terminal_value",
+)
 
 
 def _number(value: Any, field: str) -> Decimal:
@@ -19,25 +25,35 @@ def _number(value: Any, field: str) -> Decimal:
 def _delta(before: Decimal, after: Decimal) -> dict[str, str | None]:
     absolute = after - before
     percentage = absolute / before * Decimal("100") if before != 0 else None
-    return {"absolute": str(absolute), "percentage": str(percentage) if percentage is not None else None}
+    return {
+        "absolute": str(absolute),
+        "percentage": str(percentage) if percentage is not None else None,
+    }
 
 
-def compare_valuation_run_snapshots(baseline: Mapping[str, Any], comparison: Mapping[str, Any]) -> dict[str, Any]:
+def compare_valuation_run_snapshots(
+    baseline: Mapping[str, Any],
+    comparison: Mapping[str, Any],
+) -> dict[str, Any]:
     """Compare two compatible persisted runs without recalculating either run."""
     for field in ("valuation_version", "method", "currency", "base_year"):
         if baseline.get(field) != comparison.get(field):
             raise ValueError(f"valuation runs have incompatible {field}")
-    baseline_result, comparison_result = baseline.get("result"), comparison.get("result")
+    baseline_result = baseline.get("result")
+    comparison_result = comparison.get("result")
     if not isinstance(baseline_result, Mapping) or not isinstance(comparison_result, Mapping):
         raise ValueError("valuation run results must be objects")
-    old_scenarios, new_scenarios = baseline_result.get("scenarios"), comparison_result.get("scenarios")
+    old_scenarios = baseline_result.get("scenarios")
+    new_scenarios = comparison_result.get("scenarios")
     if not isinstance(old_scenarios, Mapping) or not isinstance(new_scenarios, Mapping):
         raise ValueError("valuation run results must contain scenario objects")
     if set(old_scenarios) != set(SCENARIOS) or set(new_scenarios) != set(SCENARIOS):
         raise ValueError("valuation runs must contain BEAR, BASE, and BULL scenarios")
+
     scenario_deltas = {}
     for scenario in SCENARIOS:
-        old_case, new_case = old_scenarios[scenario], new_scenarios[scenario]
+        old_case = old_scenarios[scenario]
+        new_case = new_scenarios[scenario]
         if not isinstance(old_case, Mapping) or not isinstance(new_case, Mapping):
             raise ValueError(f"{scenario} scenario results must be objects")
         scenario_deltas[scenario] = {}
@@ -47,20 +63,29 @@ def compare_valuation_run_snapshots(baseline: Mapping[str, Any], comparison: Map
             old_value = _number(old_case[metric], f"baseline.{scenario}.{metric}")
             new_value = _number(new_case[metric], f"comparison.{scenario}.{metric}")
             scenario_deltas[scenario][metric] = {
-                "baseline": str(old_value), "comparison": str(new_value), **_delta(old_value, new_value)
+                "baseline": str(old_value),
+                "comparison": str(new_value),
+                **_delta(old_value, new_value),
             }
-    old_assumptions, new_assumptions = baseline.get("assumptions"), comparison.get("assumptions")
+
+    old_assumptions = baseline.get("assumptions")
+    new_assumptions = comparison.get("assumptions")
     if not isinstance(old_assumptions, Mapping) or not isinstance(new_assumptions, Mapping):
         raise ValueError("valuation run assumptions must be objects")
     keys = sorted(set(old_assumptions) | set(new_assumptions))
     changed = [key for key in keys if old_assumptions.get(key) != new_assumptions.get(key)]
     return {
         "comparison_version": "valuation-run-comparison-v1",
-        "method": baseline["method"], "valuation_version": baseline["valuation_version"],
-        "base_year": baseline["base_year"], "currency": baseline["currency"],
-        "baseline_run_id": str(baseline["id"]), "comparison_run_id": str(comparison["id"]),
-        "changed_assumption_fields": changed, "scenarios": scenario_deltas,
-        "analyst_review_required": True, "investment_recommendation": None,
+        "method": baseline["method"],
+        "valuation_version": baseline["valuation_version"],
+        "base_year": baseline["base_year"],
+        "currency": baseline["currency"],
+        "baseline_run_id": str(baseline["id"]),
+        "comparison_run_id": str(comparison["id"]),
+        "changed_assumption_fields": changed,
+        "scenarios": scenario_deltas,
+        "analyst_review_required": True,
+        "investment_recommendation": None,
         "limitations": [
             "Compares persisted outputs and assumptions; neither valuation is recalculated.",
             "Percentage changes are null when the baseline metric is zero.",
