@@ -25,7 +25,7 @@ async def test_increment_5_head_indexes_and_foreign_keys_exist() -> None:
                 "SELECT count(*) FROM information_schema.table_constraints "
                 "WHERE constraint_type = 'FOREIGN KEY'"
             ))
-        assert revision == "0022_portfolio_ledger"
+        assert revision == "0023_portfolio_valuations"
         assert "ix_financial_facts_company_metric_filed_accession" in indexes
         assert "ix_normalized_facts_company_metric_available" in indexes
         assert foreign_keys and foreign_keys > 0
