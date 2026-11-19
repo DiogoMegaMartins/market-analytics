@@ -7,3 +7,6 @@ Increment 5.22.0 exposes the existing backend TWR and MWR/XIRR endpoints in the 
 Missing valuation coverage, invalid periods, and unsupported/ambiguous calculations remain explicit unavailable states. The UI never estimates missing valuations or substitutes zero returns. TWR requires a starting and ending valuation plus a valuation on each non-zero external cash-flow date. XIRR uses ACTUAL/365 and rejects missing or ambiguous roots.
 
 No backend schema, calculation engine, transaction behavior, or production data is changed by this increment.
+
+
+Increment 5.25.0 adds the benchmark workflow to the portfolio workspace. Authorized users can register total-return benchmark definitions, append source-attributed index observations, and compare portfolio TWR with benchmark total return over an identical period. The UI displays the API's explicit coverage and methodology limitations; it does not calculate returns, interpolate observations, fabricate data, or perform FX conversion. Benchmark observations remain immutable and duplicate dates are rejected by the backend.
