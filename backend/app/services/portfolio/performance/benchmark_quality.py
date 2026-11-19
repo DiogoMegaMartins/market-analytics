@@ -1,6 +1,6 @@
 """Read-only quality checks for manually supplied benchmark observations."""
-from datetime import date
 from decimal import Decimal, InvalidOperation
+from itertools import pairwise
 from typing import Any
 
 
@@ -8,7 +8,7 @@ def build_benchmark_quality_report(
     observations: list[Any],
     *,
     max_gap_days: int = 7,
-    anomaly_threshold_percent: Decimal = Decimal("20"),
+    anomaly_threshold_percent: Decimal = Decimal(20),
 ) -> dict[str, Any]:
     """Report calendar gaps, unusually large moves, and missing provenance.
 
@@ -29,7 +29,7 @@ def build_benchmark_quality_report(
     anomalies: list[dict[str, str]] = []
     provenance_issues: list[dict[str, str]] = []
 
-    for previous, current in zip(ordered, ordered[1:]):
+    for previous, current in pairwise(ordered):
         elapsed = (current.observation_date - previous.observation_date).days
         if elapsed > max_gap_days:
             gaps.append({

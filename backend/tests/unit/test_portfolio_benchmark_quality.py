@@ -20,7 +20,7 @@ def test_quality_report_detects_calendar_gap_and_large_move_as_review_only():
     report = build_benchmark_quality_report(
         [observation(1, "100"), observation(12, "130")],
         max_gap_days=7,
-        anomaly_threshold_percent=Decimal("20"),
+        anomaly_threshold_percent=Decimal(20),
     )
 
     assert report["summary"] == {"gap_count": 1, "anomaly_count": 1, "provenance_issue_count": 0}

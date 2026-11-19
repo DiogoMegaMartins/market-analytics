@@ -248,7 +248,7 @@ async def get_benchmark_quality(
     company_id: UUID,
     benchmark_id: UUID,
     max_gap_days: int = Query(default=7, ge=1, le=366),
-    anomaly_threshold_percent: Decimal = Query(default=Decimal("20"), gt=0),
+    anomaly_threshold_percent: Decimal = Query(default=Decimal(20), gt=0),
     start_date: date | None = Query(default=None),
     end_date: date | None = Query(default=None),
     session: AsyncSession = Depends(get_db_session),
