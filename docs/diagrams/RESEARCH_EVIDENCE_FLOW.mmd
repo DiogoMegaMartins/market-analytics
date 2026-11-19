@@ -1,9 +1,0 @@
-flowchart TB
-  DOC[Source Documents] --> EX[Extraction]
-  EX --> CLAIM[Claims & Evidence]
-  CLAIM --> CONFLICT[Conflict Detection]
-  CONFLICT --> REVIEW[Analyst Review / Qualification]
-  REVIEW --> THESIS[Investment Thesis]
-  THESIS --> CHANGE[Change Detection]
-  CHANGE --> ALERT[Alerts]
-  AI[AI Assistant] -. proposes, never overrides .-> CLAIM
