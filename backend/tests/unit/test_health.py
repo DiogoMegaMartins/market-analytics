@@ -54,5 +54,5 @@ def test_readiness_returns_ready_when_database_is_available(monkeypatch) -> None
     assert response.status_code == 200
     assert response.json() == {
         "status": "ready", "database": "connected", "schema": "current",
-        "schema_revision": "0019_neon_operational_indexes",
+        "schema_revision": "0024_portfolio_benchmarks",
     }
