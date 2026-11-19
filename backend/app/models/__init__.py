@@ -34,6 +34,7 @@ from app.models.financial_data import (
 from app.models.identity import Asset, AssetIdentifier, Company
 from app.models.portfolio import Portfolio, PortfolioTransaction
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
+from app.models.portfolio_benchmark import PortfolioBenchmark, PortfolioBenchmarkObservation
 from app.models.thesis import InvestmentThesis, InvestmentThesisEvent, InvestmentThesisVersion
 from app.models.thesis_alert import InvestmentThesisAlert, InvestmentThesisAlertEvent
 from app.models.thesis_evidence import InvestmentThesisEvidenceLink
@@ -72,6 +73,8 @@ __all__ = [
     "Portfolio",
     "PortfolioTransaction",
     "PortfolioValuationSnapshot",
+    "PortfolioBenchmark",
+    "PortfolioBenchmarkObservation",
     "SECProviderCache",
     "SECRawCompanyFacts",
     "User",
