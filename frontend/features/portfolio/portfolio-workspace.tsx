@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import PortfolioPerformancePanel from "./portfolio-performance-panel";
+import PortfolioBenchmarkPanel from "./portfolio-benchmark-panel";
 
 type Portfolio = { id: string; company_id: string; name: string; base_currency: string; status: string; created_at: string };
 type Transaction = { id: string; transaction_type: string; trade_date: string; settlement_date: string | null; asset_id: string | null; quantity: string | null; unit_price: string | null; gross_amount: string; currency: string; fees: string; taxes: string; external_reference: string | null; notes: string | null; idempotent_replay: boolean };
@@ -126,6 +127,7 @@ export default function PortfolioWorkspace() {
     {error && <div className="notice error" role="alert">{error}</div>}{notice && <div className="notice success" role="status">{notice}</div>}
     {selected && <>
       <PortfolioPerformancePanel companyId={companyId} portfolioId={portfolioId} currency={selected.base_currency} request={api} />
+      <PortfolioBenchmarkPanel companyId={companyId} portfolioId={portfolioId} currency={selected.base_currency} request={(path, init) => api(path, init)} />
       <section className="panel">
         <div className="panel-title"><div><h2>2. Registar movimento</h2><p>O movimento é imutável após registo. A chave de idempotência evita duplicações em reenvios.</p></div><span className="count-pill">Append-only</span></div>
         <div className="grid-two">
