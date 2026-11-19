@@ -17,7 +17,7 @@ async def test_database_is_migrated_to_security_head():
     try:
         async with engine.connect() as connection:
             revision = await connection.scalar(text("SELECT version_num FROM alembic_version"))
-        assert revision == "0023_portfolio_valuations"
+        assert revision == "0024_portfolio_benchmarks"
     finally:
         await engine.dispose()
 
