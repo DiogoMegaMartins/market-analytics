@@ -6,6 +6,7 @@ from app.api.v1.endpoints.financial_data import router as financial_data_router
 from app.api.v1.endpoints.identity import router as identity_router
 from app.api.v1.endpoints.metrics import router as metrics_router
 from app.api.v1.endpoints.portfolio import router as portfolio_router
+from app.api.v1.endpoints.portfolio_benchmarks import router as portfolio_benchmarks_router
 from app.api.v1.endpoints.portfolio_mwr import router as portfolio_mwr_router
 from app.api.v1.endpoints.portfolio_performance import router as portfolio_performance_router
 from app.api.v1.endpoints.portfolio_valuation import router as portfolio_valuation_router
@@ -22,5 +23,6 @@ api_router.include_router(thesis_router)
 api_router.include_router(valuation_router)
 api_router.include_router(portfolio_router)
 api_router.include_router(portfolio_valuation_router)
+api_router.include_router(portfolio_benchmarks_router)
 api_router.include_router(portfolio_performance_router)
 api_router.include_router(portfolio_mwr_router)

@@ -33,6 +33,7 @@ from app.models.financial_data import (
 )
 from app.models.identity import Asset, AssetIdentifier, Company
 from app.models.portfolio import Portfolio, PortfolioTransaction
+from app.models.portfolio_benchmark import PortfolioBenchmark, PortfolioBenchmarkObservation
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
 from app.models.thesis import InvestmentThesis, InvestmentThesisEvent, InvestmentThesisVersion
 from app.models.thesis_alert import InvestmentThesisAlert, InvestmentThesisAlertEvent
@@ -70,6 +71,8 @@ __all__ = [
     "LoginRateLimit",
     "NormalizedFinancialFact",
     "Portfolio",
+    "PortfolioBenchmark",
+    "PortfolioBenchmarkObservation",
     "PortfolioTransaction",
     "PortfolioValuationSnapshot",
     "SECProviderCache",
