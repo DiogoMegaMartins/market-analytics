@@ -45,7 +45,7 @@ def test_readiness_returns_ready_when_database_is_available(monkeypatch) -> None
 
     monkeypatch.setattr(main_module, "ping_database", available)
     async def current_schema() -> str:
-        return "0019_neon_operational_indexes"
+        return "0024_portfolio_benchmarks"
 
     monkeypatch.setattr(main_module, "verify_database_schema", current_schema)
     with TestClient(main_module.app) as client:
