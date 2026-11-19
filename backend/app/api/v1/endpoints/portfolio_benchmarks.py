@@ -15,6 +15,7 @@ from app.models.portfolio_benchmark import PortfolioBenchmark, PortfolioBenchmar
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
 from app.platform.database.session import get_db_session
 from app.services.portfolio.performance.benchmark import calculate_relative_performance
+from app.services.portfolio.performance.benchmark_quality import build_benchmark_quality_report
 from app.services.portfolio.performance.twr import calculate_time_weighted_return
 
 router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_company_access)])
@@ -241,3 +242,38 @@ async def get_relative_performance(
             "No FX conversion, interpolation, or missing-observation estimation is performed.",
         ],
     }
+
+@router.get("/portfolio/companies/{company_id}/benchmarks/{benchmark_id}/quality")
+async def get_benchmark_quality(
+    company_id: UUID,
+    benchmark_id: UUID,
+    max_gap_days: int = Query(default=7, ge=1, le=366),
+    anomaly_threshold_percent: Decimal = Query(default=Decimal(20), gt=0),
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return a read-only quality report for a benchmark observation series."""
+    await _benchmark(company_id, benchmark_id, session)
+    if start_date and end_date and end_date < start_date:
+        raise HTTPException(status_code=422, detail="end_date must be on or after start_date")
+    query = select(PortfolioBenchmarkObservation).where(
+        PortfolioBenchmarkObservation.company_id == company_id,
+        PortfolioBenchmarkObservation.benchmark_id == benchmark_id,
+    )
+    if start_date:
+        query = query.where(PortfolioBenchmarkObservation.observation_date >= start_date)
+    if end_date:
+        query = query.where(PortfolioBenchmarkObservation.observation_date <= end_date)
+    observations = list((await session.scalars(
+        query.order_by(PortfolioBenchmarkObservation.observation_date)
+    )).all())
+    try:
+        report = build_benchmark_quality_report(
+            observations,
+            max_gap_days=max_gap_days,
+            anomaly_threshold_percent=anomaly_threshold_percent,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return {"company_id": str(company_id), "benchmark_id": str(benchmark_id), **report}
