@@ -13,6 +13,17 @@ type MWR = {
   external_cash_flow_count: number; money_weighted_return: string; money_weighted_return_percent: string;
   day_count: string; root_count: number; coverage_status: string; limitations: string[];
 };
+type ValuationQuality = {
+  snapshot_count: number; valuation_date_count: number;
+  first_valuation_date: string | null; last_valuation_date: string | null;
+  rules: { canonical_selection: string; gap_basis: string; max_gap_days: number; source_reference_is_optional: boolean; findings_are_review_only: boolean };
+  summary: { gap_count: number; duplicate_date_count: number; extra_snapshot_count: number; provenance_issue_count: number };
+  gaps: { from_date: string; to_date: string; elapsed_calendar_days: number; missing_calendar_days: number }[];
+  duplicate_dates: { valuation_date: string; snapshot_count: number; canonical_snapshot_id: string; canonical_recorded_at: string; superseded_snapshot_ids: string[] }[];
+  provenance_issues: { valuation_date: string; snapshot_id: string; missing_fields: string[] }[];
+  canonical_observations: { valuation_date: string; snapshot_id: string; recorded_at: string; total_value: string }[];
+};
+
 type Props = { companyId: string; portfolioId: string; currency: string; request: (path: string) => Promise<unknown> };
 const isoDate = (date: Date) => date.toISOString().slice(0, 10);
 const defaultStart = () => { const d = new Date(); d.setUTCFullYear(d.getUTCFullYear() - 1); return isoDate(d); };
@@ -34,6 +45,20 @@ export default function PortfolioPerformancePanel({ companyId, portfolioId, curr
   const [mwrError, setMwrError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadedRange, setLoadedRange] = useState("");
+  const [loadedRange, setLoadedRange] = useState("");
+  const [quality, setQuality] = useState<ValuationQuality | null>(null);
+  const [qualityError, setQualityError] = useState("");
+  const [qualityBusy, setQualityBusy] = useState(false);
+
+  async function inspectValuationQuality() {
+    setQualityBusy(true); setQualityError(""); setQuality(null);
+    const base = `/portfolio/companies/${companyId.trim()}/portfolios/${portfolioId}/valuations/quality`;
+    const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    try { setQuality(await request(`${base}?${query}`) as ValuationQuality); }
+    catch (reason) { setQualityError(reason instanceof Error ? reason.message : "Não foi possível analisar as avaliações."); }
+    finally { setQualityBusy(false); }
+  }
+
 
   async function load() {
     setBusy(true); setTwr(null); setMwr(null); setTwrError(""); setMwrError(""); setLoadedRange("");
@@ -72,6 +97,23 @@ export default function PortfolioPerformancePanel({ companyId, portfolioId, curr
       <button disabled={busy || !companyId.trim() || !portfolioId || !startDate || !endDate || endDate <= startDate} onClick={() => void load()}>{busy ? "A calcular…" : "Calcular performance"}</button>
     </div>
     {loadedRange && <p className="muted small">Período consultado: {loadedRange} · moeda: {currency}</p>}
+    <div className="panel-title"><div><h3>Qualidade das avaliações</h3><p>Auditoria read-only de cobertura, duplicados, seleção canónica e proveniência no período selecionado.</p></div></div>
+    <button disabled={qualityBusy || !companyId.trim() || !portfolioId || endDate < startDate} onClick={() => void inspectValuationQuality()}>{qualityBusy ? "A analisar…" : "Analisar qualidade das avaliações"}</button>
+    {qualityError && <div className="notice warning" role="alert">{qualityError}</div>}
+    {quality && <>
+      <div className="portfolio-kpis portfolio-performance-kpis">
+        <article><span>Datas com avaliações</span><strong>{quality.valuation_date_count}</strong><small>{quality.snapshot_count} snapshots no total</small></article>
+        <article><span>Datas duplicadas</span><strong>{quality.summary.duplicate_date_count}</strong><small>{quality.summary.extra_snapshot_count} snapshots adicionais</small></article>
+        <article><span>Intervalos longos</span><strong>{quality.summary.gap_count}</strong><small>Mais de {quality.rules.max_gap_days} dias de calendário</small></article>
+        <article><span>Problemas de proveniência</span><strong>{quality.summary.provenance_issue_count}</strong><small>Origem ou metodologia em falta</small></article>
+      </div>
+      {quality.duplicate_dates.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Data</th><th>Snapshots</th><th>Snapshot canónico</th><th>Registado em</th></tr></thead><tbody>{quality.duplicate_dates.map(item => <tr key={item.valuation_date}><td>{item.valuation_date}</td><td>{item.snapshot_count}</td><td><code>{item.canonical_snapshot_id}</code></td><td>{item.canonical_recorded_at}</td></tr>)}</tbody></table></div>}
+      {quality.gaps.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Intervalo</th><th>Dias sem observação</th></tr></thead><tbody>{quality.gaps.map(item => <tr key={item.from_date + item.to_date}><td>{item.from_date} → {item.to_date}</td><td>{item.missing_calendar_days}</td></tr>)}</tbody></table></div>}
+      {quality.provenance_issues.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Data</th><th>Snapshot</th><th>Campos em falta</th></tr></thead><tbody>{quality.provenance_issues.map(item => <tr key={item.snapshot_id}><td>{item.valuation_date}</td><td><code>{item.snapshot_id}</code></td><td>{item.missing_fields.join(", ")}</td></tr>)}</tbody></table></div>}
+      {quality.summary.gap_count + quality.summary.duplicate_date_count + quality.summary.provenance_issue_count === 0 && <p className="notice success" role="status">Não foram detetados problemas segundo as regras aplicadas.</p>}
+      <p className="muted small">Política canónica: {quality.rules.canonical_selection}. Lacunas em dias de calendário; referência da fonte opcional. Alertas apenas para revisão — sem alterações aos snapshots.</p>
+    </>}
+
     {!loadedRange && <p className="empty-state">Seleciona o período e calcula para consultar métricas. Não são estimados valores quando faltam snapshots.</p>}
     {(twr || mwr) && <div className="portfolio-kpis portfolio-performance-kpis">
       <article><span>Time-Weighted Return (TWR)</span><strong>{twr ? percent(twr.time_weighted_return) : "Indisponível"}</strong><small>{twr ? `${twr.external_cash_flow_count} fluxos externos · ${twr.coverage_status}` : "Cobertura insuficiente ou cálculo indisponível"}</small></article>

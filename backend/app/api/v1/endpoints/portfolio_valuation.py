@@ -130,3 +130,38 @@ async def list_portfolio_valuations(
         PortfolioValuationSnapshot.id.desc(),
     ).limit(limit).offset(offset))).all())
     return {"portfolio_id": str(portfolio_id), "limit": limit, "offset": offset, "valuations": [_payload(item) for item in items]}
+
+from app.services.portfolio.performance.valuation_quality import build_portfolio_valuation_quality_report
+
+
+@router.get("/portfolio/companies/{company_id}/portfolios/{portfolio_id}/valuations/quality")
+async def get_portfolio_valuation_quality(
+    company_id: UUID,
+    portfolio_id: UUID,
+    start_date: date | None = Query(default=None),
+    end_date: date | None = Query(default=None),
+    max_gap_days: int = Query(default=7, ge=1, le=366),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return read-only valuation coverage and canonical-selection diagnostics."""
+    if start_date and end_date and end_date < start_date:
+        raise HTTPException(status_code=422, detail="end_date must be on or after start_date")
+    portfolio = await _portfolio(company_id, portfolio_id, session)
+    statement = select(PortfolioValuationSnapshot).where(
+        PortfolioValuationSnapshot.portfolio_id == portfolio_id,
+        PortfolioValuationSnapshot.company_id == company_id,
+    )
+    if start_date is not None:
+        statement = statement.where(PortfolioValuationSnapshot.valuation_date >= start_date)
+    if end_date is not None:
+        statement = statement.where(PortfolioValuationSnapshot.valuation_date <= end_date)
+    snapshots = list((await session.scalars(statement.order_by(
+        PortfolioValuationSnapshot.valuation_date,
+        PortfolioValuationSnapshot.recorded_at,
+        PortfolioValuationSnapshot.id,
+    ))).all())
+    return {"company_id": str(company_id), "portfolio_id": str(portfolio_id),
+            "currency": portfolio.base_currency,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": end_date.isoformat() if end_date else None,
+            **build_portfolio_valuation_quality_report(snapshots, max_gap_days=max_gap_days)}
