@@ -10,10 +10,9 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import require_company_access
-from app.models.portfolio import Portfolio
+from app.models.portfolio import Portfolio, PortfolioTransaction
 from app.models.portfolio_benchmark import PortfolioBenchmark, PortfolioBenchmarkObservation
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
-from app.models.portfolio import PortfolioTransaction
 from app.platform.database.session import get_db_session
 from app.services.portfolio.performance.benchmark import calculate_relative_performance
 from app.services.portfolio.performance.twr import calculate_time_weighted_return
