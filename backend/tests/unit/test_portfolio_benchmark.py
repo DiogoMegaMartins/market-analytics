@@ -46,9 +46,13 @@ def test_relative_performance_calculates_excess_return_in_percentage_points():
 
 def test_relative_performance_rejects_currency_mismatch_and_invalid_levels():
     args = {
-        portfolio_twr="0.1", benchmark_start_level="100", benchmark_end_level="110",
-        start_date=date(2026, 1, 1), end_date=date(2026, 2, 1),
-        portfolio_currency="EUR", benchmark_currency="USD",
+        "portfolio_twr": "0.1",
+        "benchmark_start_level": "100",
+        "benchmark_end_level": "110",
+        "start_date": date(2026, 1, 1),
+        "end_date": date(2026, 2, 1),
+        "portfolio_currency": "EUR",
+        "benchmark_currency": "USD",
     }
     with pytest.raises(ValueError, match="currencies must match"):
         calculate_relative_performance(**args)
