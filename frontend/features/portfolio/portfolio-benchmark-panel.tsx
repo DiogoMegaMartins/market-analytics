@@ -15,6 +15,17 @@ type RelativePerformance = {
   relative_return_percentage_points: string; benchmark_start_level: string;
   benchmark_end_level: string; portfolio_coverage_status: string; limitations: string[];
 };
+type BenchmarkQuality = {
+  observation_count: number;
+  first_observation_date: string | null;
+  last_observation_date: string | null;
+  rules: { gap_basis: string; max_gap_days: number; anomaly_threshold_percent: string; anomalies_are_review_only: boolean; source_reference_is_optional: boolean };
+  summary: { gap_count: number; anomaly_count: number; provenance_issue_count: number };
+  gaps: { from_date: string; to_date: string; elapsed_calendar_days: number; missing_calendar_days: number }[];
+  anomalies: { from_date: string; to_date: string; change_percent: string; reason: string }[];
+  provenance_issues: { observation_date: string; missing_fields: string[] }[];
+};
+
 type Props = {
   companyId: string; portfolioId: string; currency: string;
   request: (path: string, init?: RequestInit) => Promise<unknown>;
@@ -42,6 +53,7 @@ export default function PortfolioBenchmarkPanel({ companyId, portfolioId, curren
   const [observationMethodology, setObservationMethodology] = useState("Official total-return closing level");
   const [observationReference, setObservationReference] = useState("");
   const [result, setResult] = useState<RelativePerformance | null>(null);
+  const [quality, setQuality] = useState<BenchmarkQuality | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -110,11 +122,18 @@ export default function PortfolioBenchmarkPanel({ companyId, portfolioId, curren
     setResult(data);
   }
 
+  async function inspectQuality() {
+    if (!benchmarkId) throw new Error("Seleciona um benchmark.");
+    const query = new URLSearchParams({ start_date: startDate, end_date: endDate });
+    const data = await request(`${base}/benchmarks/${benchmarkId}/quality?${query}`) as BenchmarkQuality;
+    setQuality(data);
+  }
+
   return <section className="panel">
     <div className="panel-title"><div><h2>Benchmarks e performance relativa</h2><p>Comparação TWR vs. índice total return na mesma moeda e nas mesmas datas de fronteira.</p></div><span className="count-pill">Total return</span></div>
     {error && <div className="notice warning" role="alert">{error}</div>}
     {notice && <div className="notice success" role="status">{notice}</div>}
-    <label className="field portfolio-select"><span>Benchmark ({currency})</span><select value={benchmarkId} onChange={event => { setBenchmarkId(event.target.value); setResult(null); }}><option value="">Selecionar benchmark</option>{benchmarks.map(item => <option key={item.id} value={item.id}>{item.code} · {item.name} · {item.currency}{!item.is_active ? " · inativo" : ""}</option>)}</select></label>
+    <label className="field portfolio-select"><span>Benchmark ({currency})</span><select value={benchmarkId} onChange={event => { setBenchmarkId(event.target.value); setResult(null); setQuality(null); }}><option value="">Selecionar benchmark</option>{benchmarks.map(item => <option key={item.id} value={item.id}>{item.code} · {item.name} · {item.currency}{!item.is_active ? " · inativo" : ""}</option>)}</select></label>
     {selected && <div className="portfolio-meta"><strong>{selected.name}</strong><span>{selected.provider}</span><span>{selected.methodology}</span><span>{selected.currency}</span></div>}
     <details className="portfolio-create">
       <summary>Registar novo benchmark</summary>
@@ -130,6 +149,21 @@ export default function PortfolioBenchmarkPanel({ companyId, portfolioId, curren
     </details>
     {selected && <>
       <div className="panel-title"><div><h3>Observações do índice</h3><p>Introduz níveis publicados pela fonte. Datas duplicadas são rejeitadas e os registos não podem ser editados.</p></div><span className="count-pill">{observations.length} observações</span></div>
+      <div className="panel-title"><div><h3>Qualidade dos dados</h3><p>Deteção de intervalos longos, variações invulgares e metadados de proveniência em falta. Os alertas não alteram os dados históricos.</p></div></div>
+      <button disabled={busy || !benchmarkId} onClick={() => void run(inspectQuality)}>{busy ? "A analisar…" : "Analisar qualidade"}</button>
+      {quality && <>
+        <div className="portfolio-kpis portfolio-performance-kpis">
+          <article><span>Intervalos longos</span><strong>{quality.summary.gap_count}</strong><small>Base: dias de calendário · limite {quality.rules.max_gap_days} dias</small></article>
+          <article><span>Variações para revisão</span><strong>{quality.summary.anomaly_count}</strong><small>Limite absoluto {quality.rules.anomaly_threshold_percent}%</small></article>
+          <article><span>Problemas de proveniência</span><strong>{quality.summary.provenance_issue_count}</strong><small>Fonte ou metodologia em falta</small></article>
+        </div>
+        {quality.gaps.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Intervalo</th><th>Dias decorridos</th><th>Dias sem observação</th></tr></thead><tbody>{quality.gaps.map(item => <tr key={`${item.from_date}-${item.to_date}`}><td>{item.from_date} → {item.to_date}</td><td>{item.elapsed_calendar_days}</td><td>{item.missing_calendar_days}</td></tr>)}</tbody></table></div>}
+        {quality.anomalies.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Período</th><th>Variação</th><th>Estado</th></tr></thead><tbody>{quality.anomalies.map(item => <tr key={`${item.from_date}-${item.to_date}`}><td>{item.from_date} → {item.to_date}</td><td>{Number(item.change_percent).toFixed(2)}%</td><td>Requer revisão</td></tr>)}</tbody></table></div>}
+        {quality.provenance_issues.length > 0 && <div className="table-scroll"><table className="valuation-table"><thead><tr><th>Data</th><th>Metadados em falta</th></tr></thead><tbody>{quality.provenance_issues.map(item => <tr key={item.observation_date}><td>{item.observation_date}</td><td>{item.missing_fields.join(", ")}</td></tr>)}</tbody></table></div>}
+        {quality.summary.gap_count + quality.summary.anomaly_count + quality.summary.provenance_issue_count === 0 && <p className="notice success" role="status">Não foram detetados problemas segundo as regras aplicadas.</p>}
+        <p className="muted small">Análise de {quality.observation_count} observações entre {quality.first_observation_date || "—"} e {quality.last_observation_date || "—"}. As lacunas usam dias de calendário, não um calendário de sessões bolsistas. As anomalias são apenas sinalizações para revisão.</p>
+      </>}
+
       <div className="grid-two">
         <label className="field"><span>Data da observação</span><input type="date" value={observationDate} onChange={event => setObservationDate(event.target.value)} /></label>
         <label className="field"><span>Nível do índice</span><input type="number" min="0.0000000001" step="any" value={indexLevel} onChange={event => setIndexLevel(event.target.value)} placeholder="Ex.: 125.438" /></label>
