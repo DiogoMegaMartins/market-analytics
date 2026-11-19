@@ -1,0 +1,73 @@
+groups:
+  - name: market-analytics-api
+    rules:
+      - alert: MarketAnalyticsHighServerErrorRate
+        expr: |
+          sum(rate(market_analytics_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum(rate(market_analytics_http_requests_total[5m])), 0.001) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: API 5xx rate is above 5%
+          description: More than 5% of HTTP requests returned 5xx for five minutes.
+
+      - alert: MarketAnalyticsHighRequestLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(market_analytics_http_request_duration_seconds_bucket[5m]))
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: API p95 latency is above 1.5 seconds
+
+      - alert: MarketAnalyticsDatabasePoolNearExhaustion
+        expr: market_analytics_db_pool_checked_out / clamp_min(market_analytics_db_pool_size + market_analytics_db_pool_overflow, 1) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Database connection pool is near exhaustion
+
+      - alert: MarketAnalyticsAuthenticationFailureSpike
+        expr: increase(market_analytics_http_requests_total{status="401"}[10m]) >= 20
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Authentication failures are elevated
+
+      - alert: MarketAnalyticsSECRetrySpike
+        expr: increase(market_analytics_provider_retries_total{provider="sec"}[10m]) >= 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: SEC provider retries are elevated
+
+      - alert: MarketAnalyticsBackupFailed
+        expr: market_analytics_backup_last_run_success == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Latest PostgreSQL backup run failed
+
+      - alert: MarketAnalyticsBackupTooOld
+        expr: time() - market_analytics_backup_last_success_unixtime > 86400
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: No successful PostgreSQL backup in the last 24 hours
+
+      - alert: MarketAnalyticsBackupMetricsMissing
+        expr: absent(market_analytics_backup_last_run_success)
+        for: 26h
+        labels:
+          severity: critical
+        annotations:
+          summary: PostgreSQL backup metrics are missing

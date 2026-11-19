@@ -1,0 +1,1 @@
+# Financial Data\n\nIngestão SEC, raw payloads, factos reportados, normalização e resolução temporal.\n\nEstado: NOT IMPLEMENTED — esta pasta é uma fronteira arquitectural, não uma implementação funcional.\n

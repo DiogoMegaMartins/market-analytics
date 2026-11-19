@@ -1,0 +1,83 @@
+# Local integration profile. Do not expose these services directly to the public internet.
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-market_analytics}
+      POSTGRES_USER: ${POSTGRES_USER:-market}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the root .env file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+
+  migrate:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-market}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-market_analytics}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the root .env file}
+      SEC_USER_AGENT: ${SEC_USER_AGENT:-MarketAnalytics contact@example.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-development}
+      APP_DEBUG: "false"
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-market}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-market_analytics}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY in the root .env file}
+      SEC_USER_AGENT: ${SEC_USER_AGENT:-MarketAnalytics contact@example.com}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+      OPENAI_ENABLED: ${OPENAI_ENABLED:-false}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.5}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      OPENAI_TIMEOUT_SECONDS: ${OPENAI_TIMEOUT_SECONDS:-45}
+      OPENAI_MAX_OUTPUT_TOKENS: ${OPENAI_MAX_OUTPUT_TOKENS:-2500}
+    ports:
+      - "127.0.0.1:${API_PORT:-8000}:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8000/api/v1}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
