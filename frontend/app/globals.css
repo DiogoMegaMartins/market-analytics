@@ -109,3 +109,16 @@ textarea { width: 100%; border: 1px solid var(--line); border-radius: 8px; backg
 .portfolio-id { display: block; max-width: 240px; color: var(--muted); font-size: 10px; overflow-wrap: anywhere; }
 @media (max-width: 850px) { .portfolio-kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }.portfolio-movements { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 700px) { .portfolio-company, .portfolio-refresh { align-items: stretch; }.portfolio-refresh .field { min-width: 0; }.portfolio-kpis, .portfolio-movements { grid-template-columns: 1fr; }.portfolio-meta { display: grid; } }
+
+/* Portfolio Performance UI — Increment 5.22.0 */
+.portfolio-performance-filters { flex-wrap: wrap; margin: 14px 0; }
+.portfolio-performance-filters .field { min-width: 190px; }
+.portfolio-performance-kpis article small { color: var(--muted); font-size: 10px; line-height: 1.45; }
+.portfolio-performance-chart { border: 1px solid var(--line); border-radius: 10px; padding: 14px; margin-top: 16px; }
+.portfolio-performance-chart .panel-title { margin-bottom: 8px; }
+.portfolio-performance-chart h3 { margin: 0 0 5px; font-size: 14px; }
+.portfolio-chart-wrap svg { display: block; width: 100%; max-height: 190px; overflow: visible; }
+.portfolio-chart-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 10px; }
+.portfolio-performance-limitations { margin-top: 16px; }
+.portfolio-performance-limitations li { color: var(--muted); font-size: 12px; line-height: 1.5; margin: 5px 0; }
+@media (max-width: 700px) { .portfolio-performance-filters { align-items: stretch; }.portfolio-performance-filters .field { min-width: 0; } }

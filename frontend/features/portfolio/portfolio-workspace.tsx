@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import PortfolioPerformancePanel from "./portfolio-performance-panel";
 
 type Portfolio = { id: string; company_id: string; name: string; base_currency: string; status: string; created_at: string };
 type Transaction = { id: string; transaction_type: string; trade_date: string; settlement_date: string | null; asset_id: string | null; quantity: string | null; unit_price: string | null; gross_amount: string; currency: string; fees: string; taxes: string; external_reference: string | null; notes: string | null; idempotent_replay: boolean };
@@ -22,7 +23,7 @@ async function refreshSession(): Promise<boolean> {
   })();
   return refreshFlight;
 }
-async function api<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
+export async function api<T>(path: string, init?: RequestInit, retried = false): Promise<T> {
   const csrf = typeof window !== "undefined" ? sessionStorage.getItem("ma_csrf_token") : null;
   const response = await fetch(`${API}${path}`, { ...init, credentials: "include", cache: "no-store", headers: { "Content-Type": "application/json", ...(init?.method && init.method !== "GET" && csrf ? { "X-CSRF-Token": csrf } : {}), ...(init?.headers || {}) } });
   const data = await response.json().catch(() => ({}));
@@ -124,6 +125,7 @@ export default function PortfolioWorkspace() {
     </section>
     {error && <div className="notice error" role="alert">{error}</div>}{notice && <div className="notice success" role="status">{notice}</div>}
     {selected && <>
+      <PortfolioPerformancePanel companyId={companyId} portfolioId={portfolioId} currency={selected.base_currency} request={api} />
       <section className="panel">
         <div className="panel-title"><div><h2>2. Registar movimento</h2><p>O movimento é imutável após registo. A chave de idempotência evita duplicações em reenvios.</p></div><span className="count-pill">Append-only</span></div>
         <div className="grid-two">
