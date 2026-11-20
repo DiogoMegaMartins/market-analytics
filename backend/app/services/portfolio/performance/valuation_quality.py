@@ -1,7 +1,9 @@
 """Read-only quality diagnostics for immutable portfolio valuation snapshots."""
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import date
-from typing import Any, Sequence
+from itertools import pairwise
+from typing import Any
 
 
 def build_portfolio_valuation_quality_report(snapshots: Sequence[Any], *, max_gap_days: int = 7) -> dict[str, Any]:
@@ -17,7 +19,7 @@ def build_portfolio_valuation_quality_report(snapshots: Sequence[Any], *, max_ga
         by_date[item.valuation_date].append(item)
     dates = sorted(by_date)
     gaps, duplicates, provenance, canonical = [], [], [], []
-    for previous, current in zip(dates, dates[1:]):
+    for previous, current in pairwise(dates):
         elapsed = (current - previous).days
         if elapsed > max_gap_days:
             gaps.append({"from_date": previous.isoformat(), "to_date": current.isoformat(),
