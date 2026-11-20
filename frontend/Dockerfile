@@ -1,6 +1,6 @@
 FROM node:22-alpine AS dependencies
 WORKDIR /app
-COPY package.json ./
+COPY package.json pnpm-lock.yaml ./
 RUN corepack enable && corepack prepare pnpm@10 --activate && pnpm install --frozen-lockfile --ignore-scripts
 
 FROM node:22-alpine AS builder
