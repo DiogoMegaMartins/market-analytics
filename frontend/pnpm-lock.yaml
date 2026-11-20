@@ -1,5 +1,8 @@
 lockfileVersion: '9.0'
 
+overrides:
+  postcss: 8.5.18
+
 settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
