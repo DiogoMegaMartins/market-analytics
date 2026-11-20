@@ -6,12 +6,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN groupadd --system app && useradd --system --gid app --home-dir /app app
+RUN apt-get update \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --system app \
+    && useradd --system --gid app --home-dir /app app
 COPY pyproject.toml ./
 COPY app ./app
 COPY alembic.ini ./
 COPY alembic ./alembic
-RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' && python -m pip install .
+RUN python -m pip install --upgrade pip \
+    && python -m pip install . \
+    && python -m pip install --upgrade 'setuptools>=78.1.1'
 
 USER app
 EXPOSE 8000
