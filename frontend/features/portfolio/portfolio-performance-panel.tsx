@@ -45,7 +45,6 @@ export default function PortfolioPerformancePanel({ companyId, portfolioId, curr
   const [mwrError, setMwrError] = useState("");
   const [busy, setBusy] = useState(false);
   const [loadedRange, setLoadedRange] = useState("");
-  const [loadedRange, setLoadedRange] = useState("");
   const [quality, setQuality] = useState<ValuationQuality | null>(null);
   const [qualityError, setQualityError] = useState("");
   const [qualityBusy, setQualityBusy] = useState(false);
