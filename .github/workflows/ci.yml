@@ -1,13 +1,32 @@
 name: Market Analytics CI
 
 on:
+  # Feature/fix branches run CI when opened as PRs, not on every branch push.
   push:
+    branches:
+      - develop
   pull_request:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
+
+# All jobs are read-only. Grant additional permissions only to future
+# publishing/deployment jobs that explicitly require them.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-quality:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -29,7 +48,12 @@ jobs:
         run: python -m compileall -q app tests
 
   backend-postgres:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: backend-quality
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:16
@@ -106,6 +130,9 @@ jobs:
     # Manual only: this job targets the dedicated Neon integration branch.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     env:
       APP_ENV: test
       APP_DEBUG: "false"
@@ -179,7 +206,11 @@ jobs:
           PY
 
   frontend-build:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -201,7 +232,14 @@ jobs:
 
 
   container-images:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs:
+      - backend-postgres
+      - frontend-build
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - name: Build API image
