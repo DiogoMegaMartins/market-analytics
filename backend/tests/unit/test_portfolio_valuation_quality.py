@@ -2,10 +2,11 @@ from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
+import pytest
+
 from app.services.portfolio.performance.valuation_quality import (
     build_portfolio_valuation_quality_report,
 )
-import pytest
 
 
 def _snapshot(day, identifier, *, recorded="2026-01-01T10:00:00+00:00", source="MANUAL", methodology="Closing NAV"):
