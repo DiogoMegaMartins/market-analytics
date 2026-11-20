@@ -2,7 +2,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from types import SimpleNamespace
 
-from app.services.portfolio.performance.valuation_quality import build_portfolio_valuation_quality_report
+from app.services.portfolio.performance.valuation_quality import (
+    build_portfolio_valuation_quality_report,
+)
 import pytest
 
 
