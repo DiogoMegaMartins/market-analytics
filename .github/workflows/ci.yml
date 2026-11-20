@@ -245,9 +245,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build API image
-        run: docker build -f backend/Dockerfile -t market-analytics-api:ci backend
+        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f backend/Dockerfile -t market-analytics-api:ci backend
       - name: Build frontend image
-        run: docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
