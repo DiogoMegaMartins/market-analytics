@@ -9,8 +9,8 @@ from app.services.portfolio.performance.valuation_quality import build_portfolio
 
 def _snapshot(day, identifier, *, recorded="2026-01-01T10:00:00+00:00", source="MANUAL", methodology="Closing NAV"):
     return SimpleNamespace(valuation_date=date.fromisoformat(day), id=identifier,
-        recorded_at=datetime.fromisoformat(recorded), market_value=Decimal("100"),
-        cash_value=Decimal("10"), valuation_source=source, methodology=methodology)
+        recorded_at=datetime.fromisoformat(recorded), market_value=Decimal(100),
+        cash_value=Decimal(10), valuation_source=source, methodology=methodology)
 
 
 def test_report_exposes_duplicate_date_and_canonical_policy():
