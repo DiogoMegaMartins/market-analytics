@@ -231,22 +231,23 @@ jobs:
         run: npm run build
 
 
-  container-images:
-    # Build and scan images only when a PR targets main; never on develop pushes/PRs.
-    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+  publish-container-images:
+    # Build once after successful integration into develop, then publish immutable SHA tags.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
     needs:
-      - backend-postgres
+      - backend-quality
       - frontend-build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - name: Build API image
-        run: docker build -f backend/Dockerfile -t market-analytics-api:ci backend
+        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f backend/Dockerfile -t market-analytics-api:ci backend
       - name: Build frontend image
-        run: docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
@@ -262,6 +263,76 @@ jobs:
         with:
           scan-type: image
           image-ref: market-analytics-frontend:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Publish immutable commit-tagged images
+        env:
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          docker tag market-analytics-api:ci "$IMAGE_PREFIX/api:$IMAGE_TAG"
+          docker tag market-analytics-frontend:ci "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+          docker push "$IMAGE_PREFIX/api:$IMAGE_TAG"
+          docker push "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+
+  verify-container-images:
+    # Main PRs consume the exact images produced by the successful develop push.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    needs:
+      - backend-postgres
+      - frontend-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Pull images built from the exact develop commit
+        env:
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
+        run: |
+          docker pull "$IMAGE_PREFIX/api:$IMAGE_TAG"
+          docker pull "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+      - name: Verify source revision labels
+        env:
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
+          EXPECTED_REVISION: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for image in api frontend; do
+            actual=$(docker image inspect "$IMAGE_PREFIX/$image:$IMAGE_TAG" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')
+            test "$actual" = "$EXPECTED_REVISION" || {
+              echo "Image $image was not built from expected revision $EXPECTED_REVISION"
+              exit 1
+            }
+          done
+      - name: Scan API image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository }}/api:sha-${{ github.event.pull_request.head.sha }}
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+      - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.event.pull_request.head.sha }}
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
