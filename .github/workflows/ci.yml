@@ -232,7 +232,8 @@ jobs:
 
 
   container-images:
-    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    # Build and scan images only when a PR targets main; never on develop pushes/PRs.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
     needs:
       - backend-postgres
       - frontend-build
@@ -246,3 +247,23 @@ jobs:
         run: docker build -f backend/Dockerfile -t market-analytics-api:ci backend
       - name: Build frontend image
         run: docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+      - name: Scan API image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: market-analytics-api:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+      - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        with:
+          scan-type: image
+          image-ref: market-analytics-frontend:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"

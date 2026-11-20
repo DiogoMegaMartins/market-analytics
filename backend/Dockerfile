@@ -11,7 +11,7 @@ COPY pyproject.toml ./
 COPY app ./app
 COPY alembic.ini ./
 COPY alembic ./alembic
-RUN python -m pip install --upgrade pip && python -m pip install .
+RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' && python -m pip install .
 
 USER app
 EXPOSE 8000
