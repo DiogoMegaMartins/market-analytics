@@ -17,7 +17,15 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 RUN python -m pip install --upgrade pip \
     && python -m pip install . \
-    && python -m pip install --upgrade 'setuptools>=78.1.1'
+    && python -m pip install --upgrade 'setuptools>=78.1.1' \
+    && echo "=== SETUPTOOLS: PIP METADATA ===" \
+    && python -m pip show setuptools \
+    && echo "=== SETUPTOOLS: PYTHON DISTRIBUTION METADATA ===" \
+    && python -c "from importlib.metadata import distributions; [(print(f'{d.metadata.get(\'Name\')}=={d.version} | {d._path}')) for d in distributions() if (d.metadata.get('Name') or '').lower() == 'setuptools']" \
+    && echo "=== SETUPTOOLS: METADATA FILES ===" \
+    && find /usr/local/lib/python3.12/site-packages /usr/lib/python3/dist-packages -type f \( -path '*/setuptools-*.dist-info/METADATA' -o -path '*/setuptools-*.egg-info/PKG-INFO' \) -print -exec grep -m1 -i '^Version:' {} \; 2>/dev/null || true \
+    && echo "=== SETUPTOOLS: DEBIAN PACKAGES ===" \
+    && (dpkg-query -W -f='${Package} ${Version}\n' '*setuptools*' 2>/dev/null || true)
 
 USER app
 EXPOSE 8000

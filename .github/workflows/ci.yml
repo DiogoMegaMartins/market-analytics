@@ -256,8 +256,17 @@ jobs:
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
-          format: table
+          format: json
+          output: trivy-api-results.json
           exit-code: "1"
+      - name: Upload detailed API vulnerability report
+        if: always() && hashFiles('trivy-api-results.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-api-image-diagnostic
+          path: trivy-api-results.json
+          if-no-files-found: warn
+          retention-days: 7
       - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
