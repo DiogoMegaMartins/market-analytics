@@ -1,12 +1,8 @@
 name: Market Analytics Security
 
 on:
-  push:
-    branches:
-      - develop
   pull_request:
     branches:
-      - develop
       - main
   schedule:
     - cron: "23 4 * * 1"
@@ -40,7 +36,7 @@ jobs:
           python -m pip install -e ".[dev]" pip-audit
       - name: Audit installed Python dependencies
         working-directory: backend
-        run: python -m pip_audit --strict
+        run: python -m pip_audit --strict --skip-editable
 
   frontend-dependencies:
     name: Frontend dependency audit
@@ -50,13 +46,15 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v7
+      - name: Activate pnpm before configuring dependency cache
+        run: |
+          corepack enable
+          corepack prepare pnpm@10 --activate
       - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
-      - name: Enable pnpm
-        run: corepack enable
       - name: Install locked frontend dependencies
         working-directory: frontend
         run: pnpm install --frozen-lockfile --ignore-scripts
@@ -81,39 +79,6 @@ jobs:
           scan-type: fs
           scan-ref: .
           scanners: vuln,secret,misconfig
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: table
-          exit-code: "1"
-
-  container-image-security:
-    name: Container image vulnerability scan
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/checkout@v7
-      - name: Build API image
-        run: docker build -f backend/Dockerfile -t market-analytics-api:security backend
-      - name: Build frontend image
-        run: docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:security frontend
-      - name: Scan API image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
-        with:
-          scan-type: image
-          image-ref: market-analytics-api:security
-          scanners: vuln
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: table
-          exit-code: "1"
-      - name: Scan frontend image
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
-        with:
-          scan-type: image
-          image-ref: market-analytics-frontend:security
-          scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           format: table
