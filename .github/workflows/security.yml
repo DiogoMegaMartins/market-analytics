@@ -38,7 +38,7 @@ jobs:
       - name: Export installed dependencies excluding the local application package
         working-directory: backend
         run: |
-          python -m pip freeze | grep -vi '^market-analytics-backend==' > /tmp/audit-requirements.txt
+          python -m pip freeze | grep -viE '^(market-analytics-backend([[:space:]@=]|$)|-e[[:space:]])' > /tmp/audit-requirements.txt
       - name: Audit third-party Python dependencies
         run: python -m pip_audit --strict -r /tmp/audit-requirements.txt
 
