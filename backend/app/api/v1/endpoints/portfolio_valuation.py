@@ -13,7 +13,9 @@ from app.api.v1.dependencies import require_company_access
 from app.models.portfolio import Portfolio
 from app.models.portfolio_valuation import PortfolioValuationSnapshot
 from app.platform.database.session import get_db_session
-from app.services.portfolio.performance.valuation_quality import build_portfolio_valuation_quality_report
+from app.services.portfolio.performance.valuation_quality import (
+    build_portfolio_valuation_quality_report,
+)
 
 router = APIRouter(tags=["portfolio"], dependencies=[Depends(require_company_access)])
 
