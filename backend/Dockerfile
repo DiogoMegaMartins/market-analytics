@@ -23,7 +23,7 @@ RUN python -m pip install --upgrade pip \
     && echo "=== SETUPTOOLS: PYTHON DISTRIBUTIONS ===" \
     && python -c 'from importlib.metadata import distributions; [print("{}=={} | {}".format(d.metadata.get("Name"), d.version, d._path)) for d in distributions() if (d.metadata.get("Name") or "").lower() == "setuptools"]' \
     && echo "=== SETUPTOOLS: METADATA FILES ===" \
-    && find /usr/local/lib/python3.12/site-packages /usr/lib/python3/dist-packages -type f \( -path '*/setuptools-*.dist-info/METADATA' -o -path '*/setuptools-*.egg-info/PKG-INFO' \) -print -exec grep -m1 -i '^Version:' {} \; 2>/dev/null \
+    && for dir in /usr/local/lib/python3.12/site-packages /usr/lib/python3/dist-packages; do if [ -d "$dir" ]; then find "$dir" -type f \( -path '*/setuptools-*.dist-info/METADATA' -o -path '*/setuptools-*.egg-info/PKG-INFO' \) -print -exec grep -m1 -i '^Version:' {} \;; fi; done \
     && echo "=== SETUPTOOLS: DEBIAN PACKAGES ===" \
     && (dpkg-query -W -f='${Package} ${Version}\n' '*setuptools*' 2>/dev/null || true)
 
