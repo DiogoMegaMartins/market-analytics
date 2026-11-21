@@ -164,9 +164,6 @@ def test_rejects_malformed_snapshot_objects(field, value, message):
 )
 def test_rejects_malformed_scenario_objects(scenario_value, message):
     baseline, comparison = _run("baseline"), _run("comparison")
-    if isinstance(scenario_value, dict):
-        comparison["result"]["scenarios"] = scenario_value
-    else:
-        comparison["result"]["scenarios"] = scenario_value
+    comparison["result"]["scenarios"] = scenario_value
     with pytest.raises(TypeError, match=message):
         compare_valuation_run_snapshots(baseline, comparison)
