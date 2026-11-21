@@ -349,8 +349,19 @@ jobs:
                             "component": component,
                         }, sort_keys=True))
             PY
-            echo "=== installed setuptools metadata ==="
-            python -m pip show setuptools || true
+            echo "=== runtime build-tool presence ==="
+            python - <<'PY'
+            import importlib.util
+            from importlib.metadata import PackageNotFoundError, version
+
+            for package in ("pip", "setuptools"):
+                try:
+                    installed = version(package)
+                except PackageNotFoundError:
+                    installed = "absent"
+                print(f"{package}={installed}")
+            print(f"pip_importable={importlib.util.find_spec('pip') is not None}")
+            PY
           '
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
