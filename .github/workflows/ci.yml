@@ -1,13 +1,32 @@
 name: Market Analytics CI
 
 on:
+  # Feature/fix branches run CI when opened as PRs, not on every branch push.
   push:
+    branches:
+      - develop
   pull_request:
+    branches:
+      - develop
+      - main
   workflow_dispatch:
+
+# All jobs are read-only. Grant additional permissions only to future
+# publishing/deployment jobs that explicitly require them.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   backend-quality:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -29,7 +48,12 @@ jobs:
         run: python -m compileall -q app tests
 
   backend-postgres:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    needs: backend-quality
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     services:
       postgres:
         image: postgres:16
@@ -106,6 +130,9 @@ jobs:
     # Manual only: this job targets the dedicated Neon integration branch.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
     env:
       APP_ENV: test
       APP_DEBUG: "false"
@@ -179,7 +206,11 @@ jobs:
           PY
 
   frontend-build:
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/develop')
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -200,11 +231,154 @@ jobs:
         run: npm run build
 
 
-  container-images:
+  publish-container-images:
+    # Build once after successful integration into develop, then publish immutable SHA tags.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/develop'
+    needs:
+      - backend-quality
+      - frontend-build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v7
       - name: Build API image
-        run: docker build -f backend/Dockerfile -t market-analytics-api:ci backend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.sha }} -f backend/Dockerfile -t market-analytics-api:ci backend
       - name: Build frontend image
-        run: docker build -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+      - name: Scan API image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-api:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: trivy-api-results.json
+          exit-code: "1"
+      - name: Upload detailed API vulnerability report
+        if: always() && hashFiles('trivy-api-results.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-api-image-diagnostic
+          path: trivy-api-results.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-frontend:ci
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+      - name: Log in to GitHub Container Registry
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - name: Publish immutable commit-tagged images
+        env:
+          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+          IMAGE_TAG: sha-${{ github.sha }}
+        run: |
+          IMAGE_PREFIX="${IMAGE_PREFIX,,}"
+          docker tag market-analytics-api:ci "$IMAGE_PREFIX/api:$IMAGE_TAG"
+          docker tag market-analytics-frontend:ci "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+          docker push "$IMAGE_PREFIX/api:$IMAGE_TAG"
+          docker push "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+
+  verify-container-images:
+    # Build and scan the PR's own images; no dependency on a previously published GHCR tag.
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    needs:
+      - backend-postgres
+      - frontend-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build API image from PR source
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f backend/Dockerfile -t market-analytics-api:pr backend
+      - name: Build frontend image from PR source
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:pr frontend
+      - name: Verify source revision labels
+        env:
+          EXPECTED_REVISION: ${{ github.event.pull_request.head.sha }}
+        run: |
+          for image in market-analytics-api:pr market-analytics-frontend:pr; do
+            actual=$(docker image inspect "$image" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')
+            test "$actual" = "$EXPECTED_REVISION" || {
+              echo "Image $image was not built from expected PR revision $EXPECTED_REVISION"
+              exit 1
+            }
+          done
+      - name: Diagnose setuptools files in the exact API image
+        shell: bash
+        run: |
+          docker image inspect market-analytics-api:pr --format 'Image ID={{.Id}} revision={{index .Config.Labels "org.opencontainers.image.revision"}} layers={{json .RootFS.Layers}}'
+          echo "=== setuptools-related files ==="
+          docker run --rm --entrypoint sh market-analytics-api:pr -c 'find /opt/venv /usr/lib/python3 /usr/share -type f -iname "*setuptools*" -print 2>/dev/null | head -200'
+          echo "=== embedded SBOM files ==="
+          docker run --rm --entrypoint sh market-analytics-api:pr -c 'find /opt/venv /usr/lib/python3 -type f -path "*/sboms/*" -print 2>/dev/null'
+          echo "=== setuptools package metadata ==="
+          docker run --rm --entrypoint python market-analytics-api:pr -c 'from importlib.metadata import distributions; found = sorted({d.metadata.get("Name", "").lower() for d in distributions()} & {"pip", "setuptools"}); print("build_tools=" + (",".join(found) if found else "absent")); raise SystemExit(bool(found))'
+          echo "=== pip import availability ==="
+          docker run --rm --entrypoint python market-analytics-api:pr -c 'import importlib.util; print("pip_importable=" + str(importlib.util.find_spec("pip") is not None))'
+      - name: Scan API image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-api:pr
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: trivy-api-pr-results.json
+          exit-code: "1"
+      - name: Print exact Trivy package location
+        if: always() && hashFiles('trivy-api-pr-results.json') != ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("trivy-api-pr-results.json").read_text())
+          for result in report.get("Results", []):
+              for item in result.get("Vulnerabilities") or []:
+                  if item.get("VulnerabilityID") == "CVE-2025-47273":
+                      print({
+                          "target": result.get("Target"),
+                          "type": result.get("Type"),
+                          "class": result.get("Class"),
+                          "package": item.get("PkgName"),
+                          "installed_version": item.get("InstalledVersion"),
+                          "fixed_version": item.get("FixedVersion"),
+                          "pkg_path": item.get("PkgPath"),
+                          "layer": item.get("Layer"),
+                      })
+          PY
+      - name: Upload exact API Trivy report
+        if: always() && hashFiles('trivy-api-pr-results.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-api-pr-diagnostic
+          path: trivy-api-pr-results.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-frontend:pr
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
