@@ -137,3 +137,36 @@ def test_json_pointer_escapes_special_object_keys_without_collisions():
     assert set(by_pointer) == {"/a.b/c~1d", "/a/b.c~1d", "/tilde~0key"}
     assert by_pointer["/a.b/c~1d"]["path"] == "a.b.c/d"
     assert by_pointer["/a.b/c~1d"]["baseline"] == "old"
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("result", None, "valuation run results must be objects"),
+        ("result", [], "valuation run results must be objects"),
+        ("assumptions", None, "valuation run assumptions must be objects"),
+    ],
+)
+def test_rejects_malformed_snapshot_objects(field, value, message):
+    baseline, comparison = _run("baseline"), _run("comparison")
+    comparison[field] = value
+    with pytest.raises(ValueError, match=message):
+        compare_valuation_run_snapshots(baseline, comparison)
+
+
+@pytest.mark.parametrize(
+    ("scenario_value", "message"),
+    [
+        (None, "valuation run results must contain scenario objects"),
+        ([], "valuation run results must contain scenario objects"),
+        ({"BEAR": {}, "BASE": [], "BULL": {}}, "BASE scenario results must be objects"),
+    ],
+)
+def test_rejects_malformed_scenario_objects(scenario_value, message):
+    baseline, comparison = _run("baseline"), _run("comparison")
+    if isinstance(scenario_value, dict):
+        comparison["result"]["scenarios"] = scenario_value
+    else:
+        comparison["result"]["scenarios"] = scenario_value
+    with pytest.raises(ValueError, match=message):
+        compare_valuation_run_snapshots(baseline, comparison)
