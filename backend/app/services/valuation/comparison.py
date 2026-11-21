@@ -97,7 +97,14 @@ def compare_valuation_run_snapshots(
     if not isinstance(old_assumptions, Mapping) or not isinstance(new_assumptions, Mapping):
         raise TypeError("valuation run assumptions must be objects")
     keys = sorted(set(old_assumptions) | set(new_assumptions))
-    changed = [key for key in keys if old_assumptions.get(key) != new_assumptions.get(key)]
+    changed = [
+        key
+        for key in keys
+        if (
+            (key in old_assumptions) != (key in new_assumptions)
+            or old_assumptions.get(key) != new_assumptions.get(key)
+        )
+    ]
 
     old_flat = _flatten_assumptions(old_assumptions)
     new_flat = _flatten_assumptions(new_assumptions)
