@@ -326,12 +326,18 @@ jobs:
             echo "=== setuptools-related files ==="
             find / -type f -iname "*setuptools*" -print 2>/dev/null || true
             echo "=== SBOM files inside image ==="
-            find / -type f \\( -iname "*sbom*" -o -iname "*.spdx" -o -iname "*.spdx.json" -o -iname "*.cdx.json" -o -iname "*cyclonedx*" \\) -print 2>/dev/null || true
+            find / -type f \( -iname "*sbom*" -o -iname "*.spdx" -o -iname "*.spdx.json" -o -iname "*.cdx.json" -o -iname "*cyclonedx*" \) -print 2>/dev/null || true
             echo "=== all filesystem references to 70.3.0 ==="
             grep -R -a -n -F "70.3.0" / 2>/dev/null | head -100 || true
-            echo "=== Python distribution metadata ==="
-            find /opt/venv /usr/local/lib /usr/lib -type f \\( -name METADATA -o -name PKG-INFO \\) -print 2>/dev/null | while read file; do
-              if grep -qi -m1 '^Name: setuptools
+            echo "=== Python setuptools distribution metadata ==="
+            find /opt/venv /usr/local/lib /usr/lib -type f \( -name METADATA -o -name PKG-INFO \) -print 2>/dev/null | while IFS= read -r file; do
+              if grep -qi -m1 "^Name: setuptools$" "$file"; then
+                echo "--- $file"
+                grep -i -m1 -E "^(Name|Version):" "$file"
+              fi
+            done
+            echo "=== installed setuptools metadata ==="
+            python -m pip show setuptools || true
           '
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
