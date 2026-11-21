@@ -30,6 +30,8 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends python3 ca-certificates zlib1g \
     && apt-get upgrade -y --no-install-recommends \
+    && find /usr -type f -name 'setuptools-*.whl' -print -delete \
+    && test -z "$(find /usr -type f -name 'setuptools-*.whl' -print -quit)" \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app app
