@@ -293,39 +293,29 @@ jobs:
           docker push "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
 
   verify-container-images:
-    # Main PRs consume the exact images produced by the successful develop push.
+    # Build and scan the PR's own images; no dependency on a previously published GHCR tag.
     if: github.event_name == 'pull_request' && github.base_ref == 'main'
     needs:
       - backend-postgres
       - frontend-build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     permissions:
       contents: read
-      packages: read
-    env:
-      IMAGE_PREFIX: ghcr.io/diogomegamartins/market-analytics
     steps:
-      - name: Log in to GitHub Container Registry
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-      - name: Pull images built from the exact develop commit
-        env:
-          IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
-        run: |
-          IMAGE_PREFIX="${IMAGE_PREFIX,,}"
-          docker pull "$IMAGE_PREFIX/api:$IMAGE_TAG"
-          docker pull "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
+      - uses: actions/checkout@v7
+      - name: Build API image from PR source
+        run: docker build --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f backend/Dockerfile -t market-analytics-api:pr backend
+      - name: Build frontend image from PR source
+        run: docker build --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:pr frontend
       - name: Verify source revision labels
         env:
-          IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
           EXPECTED_REVISION: ${{ github.event.pull_request.head.sha }}
         run: |
-          for image in api frontend; do
-            actual=$(docker image inspect "$IMAGE_PREFIX/$image:$IMAGE_TAG" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')
+          for image in market-analytics-api:pr market-analytics-frontend:pr; do
+            actual=$(docker image inspect "$image" --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}')
             test "$actual" = "$EXPECTED_REVISION" || {
-              echo "Image $image was not built from expected revision $EXPECTED_REVISION"
+              echo "Image $image was not built from expected PR revision $EXPECTED_REVISION"
               exit 1
             }
           done
@@ -333,7 +323,7 @@ jobs:
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
-          image-ref: ${{ env.IMAGE_PREFIX }}/api:sha-${{ github.event.pull_request.head.sha }}
+          image-ref: market-analytics-api:pr
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -343,7 +333,7 @@ jobs:
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
-          image-ref: ${{ env.IMAGE_PREFIX }}/frontend:sha-${{ github.event.pull_request.head.sha }}
+          image-ref: market-analytics-frontend:pr
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
