@@ -18,7 +18,7 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 RUN python -m pip install --upgrade pip \
     && python -m pip install . \
-    && python -m pip uninstall -y setuptools || true
+    && python -m pip uninstall -y setuptools
 RUN rm -rf /usr/local/lib/python3.12/site-packages/setuptools \
            /usr/local/lib/python3.12/site-packages/setuptools-*.dist-info \
            /usr/local/lib/python3.12/site-packages/setuptools*.egg-info \
