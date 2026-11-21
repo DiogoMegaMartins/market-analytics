@@ -245,9 +245,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build API image
-        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f backend/Dockerfile -t market-analytics-api:ci backend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.sha }} -f backend/Dockerfile -t market-analytics-api:ci backend
       - name: Build frontend image
-        run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
@@ -305,9 +305,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build API image from PR source
-        run: docker build --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f backend/Dockerfile -t market-analytics-api:pr backend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f backend/Dockerfile -t market-analytics-api:pr backend
       - name: Build frontend image from PR source
-        run: docker build --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:pr frontend
+        run: docker build --pull --no-cache --label org.opencontainers.image.revision=${{ github.event.pull_request.head.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:pr frontend
       - name: Verify source revision labels
         env:
           EXPECTED_REVISION: ${{ github.event.pull_request.head.sha }}
