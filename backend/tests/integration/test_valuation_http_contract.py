@@ -76,7 +76,7 @@ async def test_dcf_post_http_contract_validates_authorizes_and_persists():
                 CompanyMembership(
                     user_id=viewer.id,
                     company_id=company.id,
-                    role="VIEWER",
+                    role="REVIEWER",
                     created_at=datetime.now(UTC),
                 ),
             ])
