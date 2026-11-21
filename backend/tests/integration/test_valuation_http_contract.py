@@ -6,7 +6,7 @@ from uuid import uuid4
 import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.api.v1.dependencies import get_current_user
@@ -125,8 +125,10 @@ async def test_dcf_post_http_contract_validates_authorizes_and_persists():
                 assert denied.status_code == 403
 
             count = await session.scalar(
-                select(ValuationRun.id).where(ValuationRun.company_id == company.id)
+                select(func.count()).select_from(ValuationRun).where(
+                    ValuationRun.company_id == company.id
+                )
             )
-            assert count == body["id"]
+            assert count == 1
     finally:
         await engine.dispose()
