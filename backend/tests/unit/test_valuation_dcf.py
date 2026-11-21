@@ -110,3 +110,39 @@ def test_terminal_value_concentration_is_a_warning_not_rejection() -> None:
     assert "PRESENT_VALUE_TERMINAL_VALUE_EXCEEDS_80_PERCENT_OF_EV" in result[
         "scenarios"
     ]["BASE"]["warnings"]
+
+
+@pytest.mark.parametrize(
+    ("scenarios", "message"),
+    [
+        (None, "scenarios must be an object"),
+        ([], "scenarios must be an object"),
+    ],
+)
+def test_rejects_non_object_scenarios(scenarios, message):
+    payload = _input()
+    payload["scenarios"] = scenarios
+    with pytest.raises(ValueError, match=message):
+        calculate_fcff_dcf(**payload)
+
+
+@pytest.mark.parametrize(
+    ("periods", "message"),
+    [
+        (None, "forecast periods must be a sequence"),
+        ("not-a-period-list", "forecast periods must be a sequence"),
+        ([None], "forecast periods must be objects"),
+    ],
+)
+def test_rejects_malformed_forecast_period_collections(periods, message):
+    payload = _input()
+    payload["scenarios"]["BASE"] = periods
+    with pytest.raises(ValueError, match=message):
+        calculate_fcff_dcf(**payload)
+
+
+def test_rejects_non_integer_forecast_year():
+    payload = _input()
+    payload["scenarios"]["BASE"][0]["year"] = 2025.5
+    with pytest.raises(ValueError, match="forecast years must be consecutive"):
+        calculate_fcff_dcf(**payload)
