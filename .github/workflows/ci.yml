@@ -286,6 +286,7 @@ jobs:
           IMAGE_PREFIX: ghcr.io/${{ github.repository }}
           IMAGE_TAG: sha-${{ github.sha }}
         run: |
+          IMAGE_PREFIX="${IMAGE_PREFIX,,}"
           docker tag market-analytics-api:ci "$IMAGE_PREFIX/api:$IMAGE_TAG"
           docker tag market-analytics-frontend:ci "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
           docker push "$IMAGE_PREFIX/api:$IMAGE_TAG"
@@ -302,6 +303,8 @@ jobs:
     permissions:
       contents: read
       packages: read
+    env:
+      IMAGE_PREFIX: ghcr.io/${{ github.repository }}
     steps:
       - name: Log in to GitHub Container Registry
         env:
@@ -312,6 +315,7 @@ jobs:
           IMAGE_PREFIX: ghcr.io/${{ github.repository }}
           IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
         run: |
+          IMAGE_PREFIX="${IMAGE_PREFIX,,}"
           docker pull "$IMAGE_PREFIX/api:$IMAGE_TAG"
           docker pull "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
       - name: Verify source revision labels
@@ -331,7 +335,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           scan-type: image
-          image-ref: ghcr.io/${{ github.repository }}/api:sha-${{ github.event.pull_request.head.sha }}
+          image-ref: ${{ env.IMAGE_PREFIX }}/api:sha-${{ github.event.pull_request.head.sha }}
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
@@ -341,7 +345,7 @@ jobs:
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
         with:
           scan-type: image
-          image-ref: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.event.pull_request.head.sha }}
+          image-ref: ${{ env.IMAGE_PREFIX }}/frontend:sha-${{ github.event.pull_request.head.sha }}
           scanners: vuln
           severity: HIGH,CRITICAL
           ignore-unfixed: true
