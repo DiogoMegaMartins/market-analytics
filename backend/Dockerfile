@@ -17,7 +17,7 @@ COPY alembic.ini ./
 COPY alembic ./alembic
 RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' \
     && python -m pip install . \
-    && python -c 'from importlib.metadata import version; from packaging.version import Version; v=version("setuptools"); assert Version(v) >= Version("78.1.1"), f"Vulnerable setuptools version: {v}"; print(f"setuptools={v}")'
+    && python -c 'from importlib.metadata import version; v=version("setuptools"); parts=tuple(int(p) for p in v.split(".")[:3]); assert parts >= (78, 1, 1), f"Vulnerable setuptools version: {v}"; print(f"setuptools={v}")'
 
 USER app
 EXPOSE 8000
