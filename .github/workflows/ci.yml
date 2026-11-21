@@ -249,7 +249,7 @@ jobs:
       - name: Build frontend image
         run: docker build --label org.opencontainers.image.revision=${{ github.sha }} -f frontend/Dockerfile --build-arg NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8000/api/v1 -t market-analytics-frontend:ci frontend
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
           image-ref: market-analytics-api:ci
@@ -268,7 +268,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
       - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
           image-ref: market-analytics-frontend:ci
@@ -330,7 +330,7 @@ jobs:
             }
           done
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
           image-ref: ${{ env.IMAGE_PREFIX }}/api:sha-${{ github.event.pull_request.head.sha }}
@@ -340,7 +340,7 @@ jobs:
           format: table
           exit-code: "1"
       - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
           scan-type: image
           image-ref: ${{ env.IMAGE_PREFIX }}/frontend:sha-${{ github.event.pull_request.head.sha }}
