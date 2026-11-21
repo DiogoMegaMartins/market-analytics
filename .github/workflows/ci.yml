@@ -321,21 +321,14 @@ jobs:
           done
       - name: Diagnose setuptools files in the exact API image
         run: |
-          docker image inspect market-analytics-api:pr --format 'Image ID={{.Id}} revision={{index .Config.Labels "org.opencontainers.image.revision"}}'
+          docker image inspect market-analytics-api:pr --format 'Image ID={{.Id}} revision={{index .Config.Labels "org.opencontainers.image.revision"}} layers={{json .RootFS.Layers}}'
           docker run --rm --entrypoint sh market-analytics-api:pr -c '
-            echo "=== setuptools-related files ==="
-            find / -type f -iname "*setuptools*" -print 2>/dev/null || true
-            echo "=== SBOM files inside image ==="
-            find / -type f \( -iname "*sbom*" -o -iname "*.spdx" -o -iname "*.spdx.json" -o -iname "*.cdx.json" -o -iname "*cyclonedx*" \) -print 2>/dev/null || true
-            echo "=== all filesystem references to 70.3.0 ==="
-            grep -R -a -n -F "70.3.0" / 2>/dev/null | head -100 || true
-            echo "=== Python setuptools distribution metadata ==="
-            find /opt/venv /usr/local/lib /usr/lib -type f \( -name METADATA -o -name PKG-INFO \) -print 2>/dev/null | while IFS= read -r file; do
-              if grep -qi -m1 "^Name: setuptools$" "$file"; then
-                echo "--- $file"
-                grep -i -m1 -E "^(Name|Version):" "$file"
-              fi
-            done
+            echo "=== setuptools metadata files ==="
+            find /opt/venv /usr/lib/python3 /usr/share -type f \\( -iname "*setuptools*" -o -name METADATA -o -name PKG-INFO \\) -print 2>/dev/null | head -200
+            echo "=== embedded third-party SBOM files ==="
+            find /opt/venv /usr/lib/python3 -type f \\( -path "*/sboms/*" -o -iname "*sbom*" -o -iname "*.spdx*" -o -iname "*.cdx.json" \\) -print 2>/dev/null
+            echo "=== exact 70.3.0 references in SBOM JSON/XML ==="
+            find /opt/venv /usr/lib/python3 -type f \\( -path "*/sboms/*" -o -iname "*sbom*" -o -iname "*.spdx*" -o -iname "*.cdx.json" \\) -exec grep -n -H -F "70.3.0" {} + 2>/dev/null || true
             echo "=== installed setuptools metadata ==="
             python -m pip show setuptools || true
           '
