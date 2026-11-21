@@ -119,6 +119,7 @@ def test_reports_added_removed_and_null_assumption_values():
     comparison["assumptions"].pop("revenue")
     comparison["assumptions"]["scenarios"] = {"BASE": [{"year": 2025, "new_driver": "5"}]}
     result = compare_valuation_run_snapshots(baseline, comparison)
+    assert result["changed_assumption_fields"] == ["optional", "revenue", "scenarios"]
     by_path = {item["path"]: item for item in result["assumption_differences"]}
     assert by_path["optional"]["baseline_present"] is True
     assert by_path["optional"]["comparison_present"] is False
