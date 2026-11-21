@@ -8,6 +8,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get upgrade -y --no-install-recommends \
+    && if dpkg-query -W -f='${Status}' python3-setuptools 2>/dev/null | grep -q 'install ok installed'; then apt-get purge -y python3-setuptools; fi \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app app
@@ -18,12 +19,13 @@ COPY alembic ./alembic
 RUN python -m pip install --upgrade pip \
     && python -m pip install . \
     && python -m pip install --upgrade 'setuptools>=78.1.1' \
+    && python -c 'from importlib.metadata import version; from packaging.version import Version; v=version("setuptools"); assert Version(v) >= Version("78.1.1"), f"Vulnerable setuptools version: {v}"; print(f"setuptools={v}")' \
     && echo "=== SETUPTOOLS: PIP METADATA ===" \
     && python -m pip show setuptools \
     && echo "=== SETUPTOOLS: PYTHON DISTRIBUTIONS ===" \
     && python -c 'from importlib.metadata import distributions; [print("{}=={} | {}".format(d.metadata.get("Name"), d.version, d._path)) for d in distributions() if (d.metadata.get("Name") or "").lower() == "setuptools"]' \
     && echo "=== SETUPTOOLS: METADATA FILES ===" \
-    && for dir in /usr/local/lib/python3.12/site-packages /usr/lib/python3/dist-packages; do if [ -d "$dir" ]; then find "$dir" -type f \( -path '*/setuptools-*.dist-info/METADATA' -o -path '*/setuptools-*.egg-info/PKG-INFO' \) -print -exec grep -m1 -i '^Version:' {} \;; fi; done \
+    && for dir in /usr/local/lib/python3.12/site-packages /usr/lib/python3/dist-packages; do if [ -d "$dir" ]; then find "$dir" -type f \( -path '*/setuptools-*.dist-info/METADATA' -o -path '*/setuptools*.egg-info/PKG-INFO' \) -print -exec grep -m1 -i '^Version:' {} \;; fi; done \
     && echo "=== SETUPTOOLS: DEBIAN PACKAGES ===" \
     && (dpkg-query -W -f='${Package} ${Version}\n' '*setuptools*' 2>/dev/null || true)
 
