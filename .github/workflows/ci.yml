@@ -304,7 +304,7 @@ jobs:
       contents: read
       packages: read
     env:
-      IMAGE_PREFIX: ghcr.io/${{ github.repository }}
+      IMAGE_PREFIX: ghcr.io/diogomegamartins/market-analytics
     steps:
       - name: Log in to GitHub Container Registry
         env:
@@ -312,7 +312,6 @@ jobs:
         run: echo "$GH_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
       - name: Pull images built from the exact develop commit
         env:
-          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
           IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
         run: |
           IMAGE_PREFIX="${IMAGE_PREFIX,,}"
@@ -320,7 +319,6 @@ jobs:
           docker pull "$IMAGE_PREFIX/frontend:$IMAGE_TAG"
       - name: Verify source revision labels
         env:
-          IMAGE_PREFIX: ghcr.io/${{ github.repository }}
           IMAGE_TAG: sha-${{ github.event.pull_request.head.sha }}
           EXPECTED_REVISION: ${{ github.event.pull_request.head.sha }}
         run: |
