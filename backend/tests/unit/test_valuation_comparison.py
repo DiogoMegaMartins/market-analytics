@@ -159,11 +159,15 @@ def test_rejects_malformed_snapshot_objects(field, value, message):
     [
         (None, "valuation run results must contain scenario objects"),
         ([], "valuation run results must contain scenario objects"),
-        ({"BEAR": {}, "BASE": [], "BULL": {}}, "BASE scenario results must be objects"),
+        ("invalid_base", "BASE scenario results must be objects"),
     ],
 )
 def test_rejects_malformed_scenario_objects(scenario_value, message):
     baseline, comparison = _run("baseline"), _run("comparison")
+    if scenario_value == "invalid_base":
+        scenarios = _run("valid")["result"]["scenarios"]
+        scenarios["BASE"] = []
+        scenario_value = scenarios
     comparison["result"]["scenarios"] = scenario_value
     with pytest.raises(TypeError, match=message):
         compare_valuation_run_snapshots(baseline, comparison)
