@@ -328,7 +328,7 @@ jobs:
           echo "=== embedded SBOM files ==="
           docker run --rm --entrypoint sh market-analytics-api:pr -c 'find /opt/venv /usr/lib/python3 -type f -path "*/sboms/*" -print 2>/dev/null'
           echo "=== setuptools package metadata ==="
-          docker run --rm --entrypoint python market-analytics-api:pr -c 'from importlib.metadata import PackageNotFoundError, version; exec("for package in (\\"pip\\", \\"setuptools\\"):\\n try: print(package + \\"=\\" + version(package))\\n except PackageNotFoundError: print(package + \\"=absent\\")")'
+          docker run --rm --entrypoint python market-analytics-api:pr -c 'from importlib.metadata import distributions; found = sorted({d.metadata.get("Name", "").lower() for d in distributions()} & {"pip", "setuptools"}); print("build_tools=" + (",".join(found) if found else "absent")); raise SystemExit(bool(found))'
           echo "=== pip import availability ==="
           docker run --rm --entrypoint python market-analytics-api:pr -c 'import importlib.util; print("pip_importable=" + str(importlib.util.find_spec("pip") is not None))'
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
