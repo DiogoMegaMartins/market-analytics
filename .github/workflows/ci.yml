@@ -320,49 +320,17 @@ jobs:
             }
           done
       - name: Diagnose setuptools files in the exact API image
+        shell: bash
         run: |
           docker image inspect market-analytics-api:pr --format 'Image ID={{.Id}} revision={{index .Config.Labels "org.opencontainers.image.revision"}} layers={{json .RootFS.Layers}}'
-          docker run --rm --entrypoint sh market-analytics-api:pr -c '
-            echo "=== setuptools metadata files ==="
-            find /opt/venv /usr/lib/python3 /usr/share -type f \\( -iname "*setuptools*" -o -name METADATA -o -name PKG-INFO \\) -print 2>/dev/null | head -200
-            echo "=== embedded third-party SBOM files ==="
-            find /opt/venv /usr/lib/python3 -type f \\( -path "*/sboms/*" -o -iname "*sbom*" -o -iname "*.spdx*" -o -iname "*.cdx.json" \\) -print 2>/dev/null
-            echo "=== setuptools components declared by embedded SBOMs ==="
-            python - <<'PY'
-            import json
-            from pathlib import Path
-
-            candidates = [
-                Path("/opt/venv/lib/python3.13/site-packages/pip/_vendor/bom.cdx.json"),
-                Path("/opt/venv/lib/python3.13/site-packages/pydantic_core-2.50.5.dist-info/sboms/pydantic-core.cyclonedx.json"),
-                Path("/opt/venv/lib/python3.13/site-packages/watchfiles-1.3.0.dist-info/sboms/watchfiles_rust_notify.cyclonedx.json"),
-            ]
-            for path in candidates:
-                if not path.is_file():
-                    continue
-                doc = json.loads(path.read_text())
-                components = doc.get("components", [])
-                for component in components:
-                    if component.get("name", "").lower() == "setuptools":
-                        print(json.dumps({
-                            "sbom": str(path),
-                            "component": component,
-                        }, sort_keys=True))
-            PY
-            echo "=== runtime build-tool presence ==="
-            python - <<'PY'
-            import importlib.util
-            from importlib.metadata import PackageNotFoundError, version
-
-            for package in ("pip", "setuptools"):
-                try:
-                    installed = version(package)
-                except PackageNotFoundError:
-                    installed = "absent"
-                print(f"{package}={installed}")
-            print(f"pip_importable={importlib.util.find_spec('pip') is not None}")
-            PY
-          '
+          echo "=== setuptools metadata files ==="
+          docker run --rm --entrypoint sh market-analytics-api:pr -c 'find /opt/venv /usr/lib/python3 /usr/share -type f \\( -iname "*setuptools*" -o -name METADATA -o -name PKG-INFO \\) -print 2>/dev/null | head -200'
+          echo "=== embedded third-party SBOM files ==="
+          docker run --rm --entrypoint sh market-analytics-api:pr -c 'find /opt/venv /usr/lib/python3 -type f \\( -path "*/sboms/*" -o -iname "*sbom*" -o -iname "*.spdx*" -o -iname "*.cdx.json" \\) -print 2>/dev/null'
+          echo "=== setuptools components declared by embedded SBOMs ==="
+          docker run --rm --entrypoint python market-analytics-api:pr -c 'import json; from pathlib import Path; candidates = [Path("/opt/venv/lib/python3.13/site-packages/pip/_vendor/bom.cdx.json"), Path("/opt/venv/lib/python3.13/site-packages/pydantic_core-2.50.5.dist-info/sboms/pydantic-core.cyclonedx.json"), Path("/opt/venv/lib/python3.13/site-packages/watchfiles-1.3.0.dist-info/sboms/watchfiles_rust_notify.cyclonedx.json")]; [(print(json.dumps({"sbom": str(p), "component": item}, sort_keys=True))) for p in candidates if p.is_file() for item in json.loads(p.read_text()).get("components", []) if item.get("name", "").lower() == "setuptools"]'
+          echo "=== runtime build-tool presence ==="
+          docker run --rm --entrypoint python market-analytics-api:pr -c 'import importlib.util; from importlib.metadata import PackageNotFoundError, version; exec("for package in (\\"pip\\", \\"setuptools\\"):\\n try: installed = version(package)\\n except PackageNotFoundError: installed = \\"absent\\"\\n print(f\\"{package}={installed}\\")"); print(f"pip_importable={importlib.util.find_spec(\\"pip\\") is not None}")'
       - name: Scan API image for HIGH/CRITICAL vulnerabilities
         uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
         with:
