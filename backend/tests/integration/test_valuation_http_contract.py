@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from fastapi import FastAPI
 
 from app.api.v1.dependencies import get_current_user
 from app.api.v1.endpoints.valuation import router as valuation_router
