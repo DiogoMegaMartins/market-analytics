@@ -26,12 +26,16 @@ def _decimal(value: Any, field: str) -> Decimal:
 
 
 def _periods(values: Sequence[Mapping[str, Any]], *, base_year: int, scenario: str) -> list[dict]:
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+        raise ValueError(f"{scenario} forecast periods must be a sequence")
     if not 1 <= len(values) <= 10:
         raise ValueError(f"{scenario} must contain between 1 and 10 forecast periods")
     result = []
     for index, item in enumerate(values, start=1):
+        if not isinstance(item, Mapping):
+            raise ValueError(f"{scenario} forecast periods must be objects")
         year = item.get("year")
-        if year != base_year + index:
+        if not isinstance(year, int) or isinstance(year, bool) or year != base_year + index:
             raise ValueError(f"{scenario} forecast years must be consecutive from base_year + 1")
         period = {
             "year": year,
@@ -107,6 +111,8 @@ def calculate_fcff_dcf(
         raise ValueError("base_year must be between 1900 and 2200")
     if not isinstance(currency, str) or len(currency) != 3 or not currency.isalpha() or currency.upper() != currency:
         raise ValueError("currency must be a three-letter uppercase currency code")
+    if not isinstance(scenarios, Mapping):
+        raise ValueError("scenarios must be an object")
     if set(scenarios) != set(SCENARIOS):
         raise ValueError("scenarios must contain exactly BEAR, BASE, and BULL")
     discount_rate = _decimal(wacc, "wacc")
