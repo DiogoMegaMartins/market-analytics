@@ -122,7 +122,7 @@ def test_terminal_value_concentration_is_a_warning_not_rejection() -> None:
 def test_rejects_non_object_scenarios(scenarios, message):
     payload = _input()
     payload["scenarios"] = scenarios
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(TypeError, match=message):
         calculate_fcff_dcf(**payload)
 
 
@@ -137,7 +137,7 @@ def test_rejects_non_object_scenarios(scenarios, message):
 def test_rejects_malformed_forecast_period_collections(periods, message):
     payload = _input()
     payload["scenarios"]["BASE"] = periods
-    with pytest.raises(ValueError, match=message):
+    with pytest.raises(TypeError, match=message):
         calculate_fcff_dcf(**payload)
 
 
