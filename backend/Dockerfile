@@ -17,7 +17,35 @@ ENV PATH="/opt/venv/bin:$PATH"
 COPY pyproject.toml ./
 COPY app ./app
 RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' \
-    && python -m pip install .
+    && python -m pip install . \
+    && python -m pip uninstall -y setuptools \
+    && python - <<'PY'
+import importlib.util
+import shutil
+import sysconfig
+from pathlib import Path
+
+site_packages = Path(sysconfig.get_paths()["purelib"])
+for path in site_packages.glob("pip*"):
+    if path.is_dir():
+        shutil.rmtree(path)
+    elif path.is_file():
+        path.unlink()
+
+for path in Path(sysconfig.get_paths()["scripts"]).glob("pip*"):
+    path.unlink(missing_ok=True)
+
+assert importlib.util.find_spec("pip") is None, "pip must not be present in the runtime venv"
+try:
+    from importlib.metadata import version
+    version("setuptools")
+except Exception as exc:
+    from importlib.metadata import PackageNotFoundError
+    assert isinstance(exc, PackageNotFoundError), f"Unexpected setuptools metadata error: {exc}"
+else:
+    raise AssertionError("setuptools must not be present in the runtime venv")
+print("Build-only tools removed: pip, setuptools")
+PY
 
 FROM debian:trixie-slim AS runtime
 
