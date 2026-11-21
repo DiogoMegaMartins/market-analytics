@@ -68,7 +68,18 @@ COPY --from=builder /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY alembic ./alembic
 
-RUN python -c 'from importlib.metadata import version; v=version("setuptools"); parts=tuple(int(p) for p in v.split(".")[:3]); assert parts >= (78, 1, 1), f"Vulnerable setuptools version: {v}"; print(f"Runtime setuptools={v}")'
+RUN python - <<'PY'
+import importlib.util
+from importlib.metadata import PackageNotFoundError, version
+
+assert importlib.util.find_spec("pip") is None, "pip unexpectedly present in runtime image"
+try:
+    version("setuptools")
+except PackageNotFoundError:
+    print("Runtime verified: pip and setuptools are absent")
+else:
+    raise AssertionError("setuptools unexpectedly present in runtime image")
+PY
 
 USER app
 EXPOSE 8000
