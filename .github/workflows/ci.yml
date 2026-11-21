@@ -325,8 +325,70 @@ jobs:
           docker run --rm --entrypoint sh market-analytics-api:pr -c '
             echo "=== setuptools-related files ==="
             find / -type f -iname "*setuptools*" -print 2>/dev/null || true
-            echo "=== metadata declaring version 70.3.0 ==="
-            grep -R -n -E "^Version: 70\\.3\\.0$|setuptools-70\\.3\\.0" /opt/venv /usr/local/lib /usr/lib /usr/share 2>/dev/null || true
+            echo "=== SBOM files inside image ==="
+            find / -type f \\( -iname "*sbom*" -o -iname "*.spdx" -o -iname "*.spdx.json" -o -iname "*.cdx.json" -o -iname "*cyclonedx*" \\) -print 2>/dev/null || true
+            echo "=== all filesystem references to 70.3.0 ==="
+            grep -R -a -n -F "70.3.0" / 2>/dev/null | head -100 || true
+            echo "=== Python distribution metadata ==="
+            find /opt/venv /usr/local/lib /usr/lib -type f \\( -name METADATA -o -name PKG-INFO \\) -print 2>/dev/null | while read file; do
+              if grep -qi -m1 '^Name: setuptools
+          '
+      - name: Scan API image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-api:pr
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: json
+          output: trivy-api-pr-results.json
+          exit-code: "1"
+      - name: Print exact Trivy package location
+        if: always() && hashFiles('trivy-api-pr-results.json') != ''
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = json.loads(Path("trivy-api-pr-results.json").read_text())
+          for result in report.get("Results", []):
+              for item in result.get("Vulnerabilities") or []:
+                  if item.get("VulnerabilityID") == "CVE-2025-47273":
+                      print({
+                          "target": result.get("Target"),
+                          "type": result.get("Type"),
+                          "class": result.get("Class"),
+                          "package": item.get("PkgName"),
+                          "installed_version": item.get("InstalledVersion"),
+                          "fixed_version": item.get("FixedVersion"),
+                          "pkg_path": item.get("PkgPath"),
+                          "layer": item.get("Layer"),
+                      })
+          PY
+      - name: Upload exact API Trivy report
+        if: always() && hashFiles('trivy-api-pr-results.json') != ''
+        uses: actions/upload-artifact@v7
+        with:
+          name: trivy-api-pr-diagnostic
+          path: trivy-api-pr-results.json
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Scan frontend image for HIGH/CRITICAL vulnerabilities
+        uses: aquasecurity/trivy-action@38b337fff0a2f984d5be173c99e3f633438167ec
+        with:
+          scan-type: image
+          image-ref: market-analytics-frontend:pr
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: table
+          exit-code: "1"
+ "$file"; then
+                echo "--- $file"
+                grep -i -m1 -E '^(Name|Version):' "$file"
+              fi
+            done
             echo "=== installed setuptools metadata ==="
             python -m pip show setuptools || true
           '
