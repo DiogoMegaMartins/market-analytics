@@ -1,24 +1,44 @@
-FROM python:3.12.16-slim-trixie AS runtime
+FROM debian:trixie-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
+WORKDIR /build
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv python3-dev build-essential \
+    && apt-get upgrade -y --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY pyproject.toml ./
+COPY app ./app
+RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' \
+    && python -m pip install .
+
+FROM debian:trixie-slim AS runtime
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/opt/venv/bin:$PATH"
+
 WORKDIR /app
 
 RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 ca-certificates zlib1g \
+    && apt-get upgrade -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --system app \
     && useradd --system --gid app --home-dir /app app
-COPY pyproject.toml ./
-COPY app ./app
+
+COPY --from=builder /opt/venv /opt/venv
 COPY alembic.ini ./
 COPY alembic ./alembic
-RUN python -m pip install --upgrade pip 'setuptools>=78.1.1' \
-    && python -m pip install . \
-    && find /usr/local/lib/python3.12/ensurepip/_bundled -maxdepth 1 -type f -name 'setuptools-*.whl' -delete \
-    && test -z "$(find /usr/local/lib/python3.12/ensurepip/_bundled -maxdepth 1 -type f -name 'setuptools-*.whl' -print -quit)" \
-    && python -c 'from importlib.metadata import version, distributions; v=version("setuptools"); parts=tuple(int(p) for p in v.split(".")[:3]); assert parts >= (78, 1, 1), f"Vulnerable setuptools version: {v}"; old=[(d.version, str(d._path)) for d in distributions() if (d.metadata.get("Name") or "").lower() == "setuptools" and tuple(int(p) for p in d.version.split(".")[:3]) < (78, 1, 1)]; assert not old, f"Old setuptools distributions remain: {old}"; print(f"setuptools={v}; no vulnerable distribution remains")'
+
+RUN python -c 'from importlib.metadata import version; v=version("setuptools"); parts=tuple(int(p) for p in v.split(".")[:3]); assert parts >= (78, 1, 1), f"Vulnerable setuptools version: {v}"; print(f"Runtime setuptools={v}")'
 
 USER app
 EXPOSE 8000
