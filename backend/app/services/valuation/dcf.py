@@ -109,7 +109,13 @@ def calculate_fcff_dcf(
     """Calculate Bear/Base/Bull FCFF DCF scenarios and a Base-case sensitivity grid."""
     if not isinstance(base_year, int) or not 1900 <= base_year <= 2200:
         raise ValueError("base_year must be between 1900 and 2200")
-    if not isinstance(currency, str) or len(currency) != 3 or not currency.isalpha() or currency.upper() != currency:
+    if (
+        not isinstance(currency, str)
+        or len(currency) != 3
+        or not currency.isascii()
+        or not currency.isalpha()
+        or currency.upper() != currency
+    ):
         raise ValueError("currency must be a three-letter uppercase currency code")
     if not isinstance(scenarios, Mapping):
         raise TypeError("scenarios must be an object")
