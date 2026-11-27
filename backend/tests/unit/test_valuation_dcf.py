@@ -66,6 +66,7 @@ def test_fcff_formula_is_applied_to_each_forecast_period() -> None:
         ("terminal_growth", "0.10", "terminal_growth"),
         ("diluted_shares", "0", "diluted_shares"),
         ("currency", "US", "currency"),
+        ("currency", "ÅBC", "currency"),
     ],
 )
 def test_rejects_invalid_global_assumptions(field: str, value: str, message: str) -> None:
