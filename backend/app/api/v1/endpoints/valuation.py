@@ -11,8 +11,8 @@ from app.api.v1.dependencies import require_company_access
 from app.models.financial_data import ValuationRun
 from app.models.identity import Asset, AssetType, Company, EntityStatus
 from app.platform.database.session import get_db_session
-from app.services.valuation.comparison import compare_valuation_run_snapshots
 from app.services.identity.sic_classification import SICSector, classify_sic
+from app.services.valuation.comparison import compare_valuation_run_snapshots
 from app.services.valuation.dcf import calculate_fcff_dcf
 
 router = APIRouter(tags=["valuation"], dependencies=[Depends(require_company_access)])
@@ -54,10 +54,10 @@ async def create_company_dcf_valuation(
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
     issuer_sector = classify_sic(company.sic_code)
-    if issuer_sector == SICSector.BANKING:
+    if issuer_sector == SICSector.FINANCIAL_SERVICES:
         raise HTTPException(
             status_code=422,
-            detail="FCFF DCF is not suitable for banks or credit institutions; use sector-specific methods such as Residual Income, P/TBV or DDM",
+            detail="FCFF DCF is not suitable for banks or financial institutions; use sector-specific methods such as Residual Income, P/TBV or DDM",
         )
     if issuer_sector == SICSector.INSURANCE:
         raise HTTPException(
