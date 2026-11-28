@@ -49,3 +49,25 @@ def test_valuation_input_preserves_explicit_scenario_assumptions():
 def test_valuation_run_table_is_registered_for_migrations():
     table = Base.metadata.tables["valuation_runs"]
     assert {"company_id", "created_by_user_id", "assumptions", "result"} <= set(table.columns.keys())
+
+
+@pytest.mark.parametrize(
+    ("sic_code", "expected"),
+    [
+        ("6021", "BANKING"),
+        ("6141", "BANKING"),
+        ("6311", "INSURANCE"),
+        ("6399", "INSURANCE"),
+        ("6798", "REIT"),
+        ("3571", "OTHER"),
+        (None, None),
+        ("abc", None),
+        ("679", None),
+        ("１２３４", None),
+    ],
+)
+def test_sec_sic_sector_classification(sic_code, expected):
+    from app.services.identity.sic_classification import classify_sic
+
+    sector = classify_sic(sic_code)
+    assert (sector.value if sector is not None else None) == expected
