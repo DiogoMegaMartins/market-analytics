@@ -161,9 +161,11 @@ async def register_sec_ticker(
 
     official_name = str(submission.get("name") or "").strip()
     raw_sic = submission.get("sic")
-    sic_code = str(raw_sic).strip() if raw_sic is not None else None
-    if sic_code is not None and (len(sic_code) != 4 or not sic_code.isascii() or not sic_code.isdigit()):
-        sic_code = None
+    sic_code = None
+    if raw_sic is not None:
+        candidate_sic = str(raw_sic).strip()
+        if candidate_sic.isascii() and candidate_sic.isdigit() and 1 <= len(candidate_sic) <= 4:
+            sic_code = candidate_sic.zfill(4)
     sic_description = str(submission.get("sicDescription") or "").strip() or None
     if sic_description is not None:
         sic_description = sic_description[:256]
