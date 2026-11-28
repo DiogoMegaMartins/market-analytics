@@ -11,6 +11,7 @@ from app.models.identity import (
     AssetIdentifier,
     AssetType,
     Company,
+    EntityStatus,
     IdentifierType,
     VerificationStatus,
 )
@@ -160,6 +161,14 @@ async def register_sec_ticker(
         raise HTTPException(status_code=502, detail="SEC provider unavailable") from exc
 
     official_name = str(submission.get("name") or "").strip()
+    raw_sic = submission.get("sic")
+    sic_code = str(raw_sic).strip() if raw_sic is not None else None
+    if sic_code is not None and (len(sic_code) != 4 or not sic_code.isascii() or not sic_code.isdigit()):
+        sic_code = None
+    sic_description = str(submission.get("sicDescription") or "").strip() or None
+    if sic_description is not None:
+        sic_description = sic_description[:256]
+    sic_verified_at = datetime.now(UTC) if sic_code is not None else None
     official_tickers = {str(value).upper() for value in submission.get("tickers", [])}
     if not official_name or candidate.ticker not in official_tickers:
         raise HTTPException(status_code=409, detail="SEC identity verification did not confirm ticker")
@@ -175,7 +184,7 @@ async def register_sec_ticker(
         if existing_membership is None or existing_membership.role not in {"ANALYST", "ADMIN"}:
             raise HTTPException(status_code=404, detail="Company not found")
     if company is None:
-        company = Company(legal_name=official_name, display_name=official_name)
+        company = Company(legal_name=official_name, display_name=official_name, sic_code=sic_code, sic_description=sic_description, sic_verified_at=sic_verified_at)
         session.add(company)
         await session.flush()
         from datetime import UTC, datetime
@@ -189,6 +198,10 @@ async def register_sec_ticker(
         ))
     elif company.legal_name.casefold() != official_name.casefold():
         raise HTTPException(status_code=409, detail="Existing CIK has a conflicting company name")
+    if sic_code is not None:
+        company.sic_code = sic_code
+        company.sic_description = sic_description
+        company.sic_verified_at = sic_verified_at
 
     existing_ticker = await session.scalar(select(AssetIdentifier).where(
         AssetIdentifier.identifier_type == IdentifierType.TICKER.value,
