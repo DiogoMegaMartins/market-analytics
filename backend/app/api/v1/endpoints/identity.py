@@ -11,7 +11,6 @@ from app.models.identity import (
     AssetIdentifier,
     AssetType,
     Company,
-    EntityStatus,
     IdentifierType,
     VerificationStatus,
 )
