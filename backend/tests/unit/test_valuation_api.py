@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from app.api.v1.endpoints.valuation import DCFValuationInput, router
 from app.models import Base
+from app.services.identity.sic_classification import classify_sic
 
 
 def _period(year: int) -> dict:
@@ -54,8 +55,9 @@ def test_valuation_run_table_is_registered_for_migrations():
 @pytest.mark.parametrize(
     ("sic_code", "expected"),
     [
-        ("6021", "BANKING"),
-        ("6141", "BANKING"),
+        ("6021", "FINANCIAL_SERVICES"),
+        ("6141", "FINANCIAL_SERVICES"),
+        ("6211", "FINANCIAL_SERVICES"),
         ("6311", "INSURANCE"),
         ("6399", "INSURANCE"),
         ("6798", "REIT"),
@@ -67,7 +69,5 @@ def test_valuation_run_table_is_registered_for_migrations():
     ],
 )
 def test_sec_sic_sector_classification(sic_code, expected):
-    from app.services.identity.sic_classification import classify_sic
-
     sector = classify_sic(sic_code)
     assert (sector.value if sector is not None else None) == expected
