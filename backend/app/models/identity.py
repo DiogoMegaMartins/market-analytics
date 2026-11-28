@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -48,6 +48,9 @@ class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     display_name: Mapped[str | None] = mapped_column(String(300))
     country_code: Mapped[str | None] = mapped_column(String(2))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default=EntityStatus.ACTIVE.value, server_default=EntityStatus.ACTIVE.value)
+    sic_code: Mapped[str | None] = mapped_column(String(4))
+    sic_description: Mapped[str | None] = mapped_column(String(256))
+    sic_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     assets: Mapped[list["Asset"]] = relationship(back_populates="company")
     identifiers: Mapped[list["AssetIdentifier"]] = relationship(back_populates="company")
