@@ -18,6 +18,6 @@ Moeda e inflação consistentes; WACC superior ao terminal growth; pressupostos 
 
 ## Suitability guard (SEC SIC)
 
-The API uses the SIC code verified from the SEC submissions record when registering a SEC ticker. Current narrow safeguards reject FCFF DCF for SIC 6000–6299 (banks, credit and other financial institutions), SIC 6311–6399 (insurance issuers), and SIC 6798 (REITs). Active assets classified as REIT remain a fallback safeguard when issuer SIC is absent. SIC is source-derived and is not accepted from company-create input.
+The API uses the SIC code verified from the SEC submissions record when registering a SEC ticker. Current narrow safeguards reject FCFF DCF for SIC 6000–6299 (banks, credit and other financial institutions), SIC 6311–6399 (insurance issuers), and SIC 6798 (REITs). An active asset classified as REIT remains a fallback safeguard regardless of issuer SIC. SIC is source-derived and is not accepted from company-create input.
 
 A missing or unrecognized SIC is not interpreted as a sector classification; analysts must verify the issuer's business model and choose an appropriate method. SIC mapping is a conservative guard, not a complete sector taxonomy. In particular, classifications based on SEC SIC can be imperfect for diversified issuers and do not replace analyst review.
