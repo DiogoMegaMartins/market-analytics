@@ -186,7 +186,6 @@ async def register_sec_ticker(
         company = Company(legal_name=official_name, display_name=official_name, sic_code=sic_code, sic_description=sic_description, sic_verified_at=sic_verified_at)
         session.add(company)
         await session.flush()
-        from datetime import UTC, datetime
         session.add(CompanyMembership(user_id=current_user.id, company_id=company.id, role="ADMIN", created_at=datetime.now(UTC)))
         session.add(AssetIdentifier(
             company_id=company.id, identifier_type=IdentifierType.CIK.value,
