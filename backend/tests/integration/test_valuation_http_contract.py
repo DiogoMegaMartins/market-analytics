@@ -13,7 +13,7 @@ from app.api.v1.dependencies import get_current_user
 from app.api.v1.endpoints.valuation import router as valuation_router
 from app.models.auth import CompanyMembership, User
 from app.models.financial_data import ValuationRun
-from app.models.identity import Company
+from app.models.identity import Asset, AssetType, Company
 from app.platform.database.session import get_db_session
 
 DATABASE_URL = os.getenv("TEST_DATABASE_URL")
@@ -119,6 +119,17 @@ async def test_dcf_post_http_contract_validates_authorizes_and_persists():
                 assert persisted is not None
                 assert persisted.company_id == company.id
                 assert persisted.created_by_user_id == analyst.id
+
+                # FCFF DCF is not an appropriate method for a REIT issuer.
+                session.add(Asset(
+                    company_id=company.id,
+                    asset_type=AssetType.REIT.value,
+                    name="REIT security",
+                ))
+                await session.flush()
+                reit_response = await client.post(path, json=_payload())
+                assert reit_response.status_code == 422
+                assert "not suitable for REITs" in reit_response.json()["detail"]
 
                 active_user["value"] = viewer
                 denied = await client.post(path, json=_payload())

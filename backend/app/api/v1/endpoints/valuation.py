@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.v1.dependencies import require_company_access
 from app.models.financial_data import ValuationRun
-from app.models.identity import Company
+from app.models.identity import Asset, AssetType, Company
 from app.platform.database.session import get_db_session
 from app.services.valuation.comparison import compare_valuation_run_snapshots
 from app.services.valuation.dcf import calculate_fcff_dcf
@@ -52,6 +52,20 @@ async def create_company_dcf_valuation(
     company = await session.get(Company, company_id)
     if company is None:
         raise HTTPException(status_code=404, detail="Company not found")
+    reit_asset_id = await session.scalar(
+        select(Asset.id).where(
+            Asset.company_id == company_id,
+            Asset.asset_type == AssetType.REIT.value,
+        ).limit(1)
+    )
+    if reit_asset_id is not None:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "FCFF DCF is not suitable for REITs; use an AFFO multiple "
+                "or NAV-based valuation method"
+            ),
+        )
     assumptions = payload.model_dump(mode="json")
     try:
         result = calculate_fcff_dcf(**assumptions)
