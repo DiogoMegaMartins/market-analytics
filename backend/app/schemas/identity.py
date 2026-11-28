@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -17,6 +17,9 @@ class CompanyRead(BaseModel):
     display_name: str | None
     country_code: str | None
     status: str
+    sic_code: str | None
+    sic_description: str | None
+    sic_verified_at: datetime | None
 
 
 class AssetCreate(BaseModel):
