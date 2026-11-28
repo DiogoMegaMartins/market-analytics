@@ -144,6 +144,23 @@ async def test_dcf_post_http_contract_validates_authorizes_and_persists():
                 denied = await client.post(path, json=_payload())
                 assert denied.status_code == 403
 
+                # SEC SIC classification also blocks bank/credit issuers,
+                # independently of the explicit REIT asset-type safeguard.
+                active_user["value"] = analyst
+                company.sic_code = "6021"
+                reit_asset = await session.scalar(
+                    select(Asset).where(
+                        Asset.company_id == company.id,
+                        Asset.asset_type == AssetType.REIT.value,
+                    )
+                )
+                assert reit_asset is not None
+                reit_asset.asset_type = AssetType.OTHER.value
+                await session.flush()
+                bank_response = await client.post(path, json=_payload())
+                assert bank_response.status_code == 422
+                assert "not suitable for banks" in bank_response.json()["detail"]
+
             count = await session.scalar(
                 select(func.count()).select_from(ValuationRun).where(
                     ValuationRun.company_id == company.id

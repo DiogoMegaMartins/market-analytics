@@ -1,8 +1,8 @@
-from datetime import date
+from datetime import date, datetime
 from enum import StrEnum
 from uuid import UUID
 
-from sqlalchemy import CheckConstraint, Date, ForeignKey, Index, String, UniqueConstraint
+from sqlalchemy import CheckConstraint, Date, DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -42,12 +42,25 @@ class VerificationStatus(StrEnum):
 
 class Company(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "companies"
-    __table_args__ = (Index("ix_companies_name", "legal_name"),)
+    __table_args__ = (
+        Index("ix_companies_name", "legal_name"),
+        Index("ix_companies_sic_code", "sic_code"),
+        CheckConstraint(
+            "sic_code IS NULL OR sic_code ~ '^[0-9]{4}$'",
+            name="ck_companies_sic_code_format",
+        ),
+    )
 
     legal_name: Mapped[str] = mapped_column(String(300), nullable=False)
     display_name: Mapped[str | None] = mapped_column(String(300))
     country_code: Mapped[str | None] = mapped_column(String(2))
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default=EntityStatus.ACTIVE.value, server_default=EntityStatus.ACTIVE.value)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=EntityStatus.ACTIVE.value,
+        server_default=EntityStatus.ACTIVE.value,
+    )
+    sic_code: Mapped[str | None] = mapped_column(String(4))
+    sic_description: Mapped[str | None] = mapped_column(String(256))
+    sic_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     assets: Mapped[list["Asset"]] = relationship(back_populates="company")
     identifiers: Mapped[list["AssetIdentifier"]] = relationship(back_populates="company")
@@ -64,7 +77,10 @@ class Asset(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     )
     asset_type: Mapped[str] = mapped_column(String(30), nullable=False)
     name: Mapped[str] = mapped_column(String(300), nullable=False)
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default=EntityStatus.ACTIVE.value, server_default=EntityStatus.ACTIVE.value)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=EntityStatus.ACTIVE.value,
+        server_default=EntityStatus.ACTIVE.value,
+    )
 
     company: Mapped[Company] = relationship(back_populates="assets")
     identifiers: Mapped[list["AssetIdentifier"]] = relationship(back_populates="asset")
@@ -78,8 +94,14 @@ class AssetIdentifier(UUIDPrimaryKeyMixin, TimestampMixin, Base):
             "(company_id IS NULL AND asset_id IS NOT NULL)",
             name="exactly_one_owner",
         ),
-        CheckConstraint("valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from", name="valid_date_order"),
-        UniqueConstraint("identifier_type", "value", "valid_from", name="uq_asset_identifiers_type_value_from"),
+        CheckConstraint(
+            "valid_to IS NULL OR valid_from IS NULL OR valid_to >= valid_from",
+            name="valid_date_order",
+        ),
+        UniqueConstraint(
+            "identifier_type", "value", "valid_from",
+            name="uq_asset_identifiers_type_value_from",
+        ),
         Index("ix_asset_identifiers_lookup", "identifier_type", "value"),
     )
 
@@ -96,7 +118,9 @@ class AssetIdentifier(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     valid_from: Mapped[date | None] = mapped_column(Date)
     valid_to: Mapped[date | None] = mapped_column(Date)
     verification_status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default=VerificationStatus.UNVERIFIED.value, server_default=VerificationStatus.UNVERIFIED.value
+        String(30), nullable=False,
+        default=VerificationStatus.UNVERIFIED.value,
+        server_default=VerificationStatus.UNVERIFIED.value,
     )
     source_name: Mapped[str | None] = mapped_column(String(100))
     source_url: Mapped[str | None] = mapped_column(String(500))
