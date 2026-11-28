@@ -13,7 +13,7 @@ from app.api.v1.dependencies import get_current_user
 from app.api.v1.endpoints.valuation import router as valuation_router
 from app.models.auth import CompanyMembership, User
 from app.models.financial_data import ValuationRun
-from app.models.identity import Asset, AssetType, Company
+from app.models.identity import Asset, AssetType, Company, EntityStatus
 from app.platform.database.session import get_db_session
 
 DATABASE_URL = os.getenv("TEST_DATABASE_URL")
@@ -100,6 +100,15 @@ async def test_dcf_post_http_contract_validates_authorizes_and_persists():
                 base_url="http://testserver",
             ) as client:
                 path = f"/api/v1/valuation/companies/{company.id}/dcf"
+                # Historical/inactive REIT asset records must not classify the
+                # company's current issuer type or block an otherwise valid DCF.
+                session.add(Asset(
+                    company_id=company.id,
+                    asset_type=AssetType.REIT.value,
+                    name="Former REIT security",
+                    status=EntityStatus.INACTIVE.value,
+                ))
+                await session.flush()
                 invalid = _payload()
                 invalid["unexpected"] = "must be rejected"
                 invalid_response = await client.post(path, json=invalid)
