@@ -4,7 +4,7 @@ from enum import StrEnum
 
 
 class SICSector(StrEnum):
-    BANKING = "BANKING"
+    FINANCIAL_SERVICES = "FINANCIAL_SERVICES"
     INSURANCE = "INSURANCE"
     REIT = "REIT"
     OTHER = "OTHER"
@@ -23,8 +23,8 @@ def classify_sic(sic_code: str | int | None) -> SICSector | None:
         return None
 
     numeric = int(code)
-    if 6000 <= numeric <= 6199:
-        return SICSector.BANKING
+    if 6000 <= numeric <= 6299:
+        return SICSector.FINANCIAL_SERVICES
     if 6311 <= numeric <= 6399:
         return SICSector.INSURANCE
     if numeric == 6798:
